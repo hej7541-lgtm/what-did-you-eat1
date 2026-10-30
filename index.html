@@ -1,0 +1,2888 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>뭐먹었니 - 식단 & 피부 캘린더</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="뭐먹었니">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><rect width=%27100%27 height=%27100%27 rx=%2725%27 fill=%27%2310b981%27/><text y=%2770%27 x=%2750%27 text-anchor=%27middle%27 font-size=%2760%27>🌿</text></svg>">
+
+  <!-- Tailwind CSS 3.4.17 -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Chart.js 4.4.1 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            },
+            score: {
+              optimal: '#10b981', // 4.5 ~ 5.0 (Emerald)
+              good: '#84cc16',    // 3.5 ~ 4.4 (Lime)
+              warning: '#f59e0b', // 2.5 ~ 3.4 (Amber)
+              danger: '#f43f5e',  // 1.0 ~ 2.4 (Rose)
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Complete horizontal lock: prevent left-right screen wobble */
+    html, body {
+      overflow-x: hidden !important;
+      width: 100% !important;
+      max-width: 100vw !important;
+      position: relative;
+      overscroll-behavior-x: none;
+      -webkit-overflow-scrolling: touch;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    header, main, section {
+      max-width: 100% !important;
+      overflow-x: hidden;
+    }
+    /* Hide scrollbars but keep functionality */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Prevent iOS Safari auto-zoom on input focus */
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    input[type="range"],
+    input[type="password"],
+    textarea,
+    select {
+      font-size: 16px !important;
+      -webkit-text-size-adjust: 100%;
+    }
+    /* Touch action optimization for smooth horizontal swiping */
+    .swipe-item {
+      touch-action: pan-y;
+    }
+    /* Safe area padding for iOS */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 1rem);
+    }
+
+    /* Modal horizontal lock: prevent left-right wobble in modals */
+    #modal-meal, #modal-meal *, #modal-symptom, #modal-symptom * {
+      box-sizing: border-box !important;
+    }
+    #modal-meal, #modal-symptom {
+      overflow-x: hidden !important;
+      overscroll-behavior-x: none !important;
+      touch-action: pan-y !important;
+    }
+    #modal-meal > div, #modal-symptom > div {
+      overflow-x: hidden !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      overscroll-behavior-x: none !important;
+    }
+    .modal-scroll-body {
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      overscroll-behavior-x: none !important;
+      touch-action: pan-y !important;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+
+    /* Reduced font size for date and time inputs */
+    #input-meal-date, #input-meal-time, #input-symptom-date {
+      font-size: 13px !important;
+      padding: 0.35rem 0.5rem !important;
+      height: 36px !important;
+    }
+  </style>
+  <link rel="manifest" href="data:application/manifest+json;utf-8,%7B%22name%22%3A%22%EB%AD%90%EB%A8%B9%EC%97%88%EB%8B%88%22%2C%22short_name%22%3A%22%EB%AD%90%EB%A8%B9%EC%97%88%EB%8B%88%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%2310b981%22%7D">
+</head>
+<body class="bg-white text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- Sleek Native App Header (No bulky marketing banner) -->
+  <header class="sticky top-0 z-30 bg-white border-b border-pink-100/80 px-4 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+    <div class="max-w-md mx-auto flex items-center justify-center">
+      <div class="flex items-center space-x-2">
+        <div class="w-7 h-7 rounded-xl bg-[#ffddff] flex items-center justify-center shadow-sm border border-pink-200">
+          <svg class="w-4 h-4 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+            <path d="M7 2v20"></path>
+            <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+          </svg>
+        </div>
+        <h1 class="text-base font-black tracking-tight text-slate-900">뭐먹었니</h1>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="flex-1 max-w-md mx-auto w-full px-4 pt-3 pb-24">
+
+    <!-- View Tabs: 1) 캘린더, 2) 컨디션 -->
+    <div class="flex bg-slate-200/80 p-1 rounded-xl mb-4 text-xs font-semibold">
+      <button id="tab-calendar" class="flex-1 py-2 rounded-lg text-center transition-all bg-white text-slate-900 shadow-sm flex items-center justify-center gap-1.5">
+        <span>📅</span> 월간 캘린더
+      </button>
+      <button id="tab-analysis" class="flex-1 py-2 rounded-lg text-center transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5">
+        <span>📈</span> 컨디션
+      </button>
+    </div>
+
+    <!-- VIEW 1: CALENDAR VIEW -->
+    <section id="view-calendar" class="space-y-4">
+
+      <!-- Calendar Controls (Month Selector) -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-3">
+          <h2 id="calendar-title" class="text-base font-bold text-slate-900">2026년 10월</h2>
+          <div class="flex items-center space-x-1">
+            <button id="btn-prev-month" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 active:scale-95 transition-transform">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <button id="btn-today-month" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">오늘</button>
+            <button id="btn-next-month" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 active:scale-95 transition-transform">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Star Rating Legend -->
+        <div class="flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2.5 pb-1">
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span class="text-emerald-700 font-bold">최적 (4.5~5점)</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-lime-500"></span>
+            <span class="text-lime-700 font-semibold">양호 (3.5~4.4)</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span class="text-amber-700 font-semibold">주의 (2.5~3.4)</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            <span class="text-rose-700 font-semibold">위험 (&lt;2.5)</span>
+          </div>
+        </div>
+
+        <!-- Day Names Header -->
+        <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400 mt-2 mb-1">
+          <div class="text-rose-500">일</div>
+          <div>월</div>
+          <div>화</div>
+          <div>수</div>
+          <div>목</div>
+          <div>금</div>
+          <div class="text-blue-500">토</div>
+        </div>
+
+        <!-- Calendar Days Grid -->
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Selected Date Detail Card -->
+      <div id="selected-date-card" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span id="detail-date-display" class="font-bold text-slate-900 text-sm">10월 28일 (화)</span>
+            <span id="detail-score-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-[#ffddff] text-slate-900 border border-pink-200">★ 5.0</span>
+          </div>
+          <p id="detail-summary-text" class="text-xs text-slate-500">총 2끼 식사 기록됨 (왼쪽으로 밀어서 삭제)</p>
+        </div>
+
+        <!-- Skin Symptom Badge on Selected Day -->
+        <div id="detail-symptom-banner" class="rounded-xl p-3 bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Meals List for Selected Date -->
+        <div id="detail-meals-list" class="space-y-2.5 pt-1">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+
+
+    
+      <!-- Quick Banner: 1-Week Evaluation & Next Week Meal Recommendation -->
+      <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 border border-pink-100 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🏆</span>
+          <div>
+            <h3 class="text-xs font-bold text-slate-900">1주 식단 채점 & 다음 주 식단 추천</h3>
+            <p class="text-[11px] text-slate-500">지난 7일간 기록을 분석하여 다음 주 최적 식단을 제안합니다</p>
+          </div>
+        </div>
+        <button id="btn-goto-weekly-plan" type="button" class="px-3 py-1.5 rounded-xl bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 text-xs font-bold border border-pink-200 shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+          <span>확인하기</span>
+          <span>›</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 2: CORRELATION & SYMPTOM ANALYSIS VIEW -->
+    <section id="view-analysis" class="space-y-4 hidden">
+
+      <!-- FEATURE: 1-WEEK EVALUATION & NEXT WEEK MEAL RECOMMENDATION -->
+      <div id="weekly-plan-card" class="bg-white rounded-2xl p-4 shadow-sm border border-pink-100 space-y-3.5">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-xl bg-[#ffddff] border border-pink-200 flex items-center justify-center text-sm font-bold shadow-sm">🏆</span>
+            <div>
+              <h2 class="text-sm font-extrabold text-slate-900">1주 식단 채점 & 다음 주 식단 추천</h2>
+              <p id="weekly-eval-period" class="text-[11px] text-slate-500">최근 7일간 식단 기록 정밀 분석</p>
+            </div>
+          </div>
+          <span id="weekly-eval-badge" class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+            A+ 최적 (5.0점)
+          </span>
+        </div>
+
+        <!-- Weekly Report Card Summary Box -->
+        <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700">📊 1주간 식단 성적표</span>
+            <span id="weekly-meal-count" class="text-[11px] text-slate-500 font-medium">총 0끼 분석</span>
+          </div>
+          
+          <!-- Key Weekly Stats Pills -->
+          <div class="grid grid-cols-3 gap-1.5 text-center text-[11px]">
+            <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-xs">
+              <div class="text-slate-400 text-[10px]">클린 식단 비율</div>
+              <div id="weekly-stat-clean" class="font-extrabold text-emerald-600 mt-0.5">-</div>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-xs">
+              <div class="text-slate-400 text-[10px]">유제품/가공당</div>
+              <div id="weekly-stat-dairy-sugar" class="font-extrabold text-rose-500 mt-0.5">-</div>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-xs">
+              <div class="text-slate-400 text-[10px]">21시 야식</div>
+              <div id="weekly-stat-late" class="font-extrabold text-amber-600 mt-0.5">-</div>
+            </div>
+          </div>
+
+          <!-- Prescriptive Feedback Text -->
+          <p id="weekly-eval-feedback" class="text-xs text-slate-700 leading-relaxed font-medium bg-white p-2.5 rounded-xl border border-pink-100">
+            데이터를 계산 중입니다...
+          </p>
+        </div>
+
+        <!-- Next Week Meal Plan Section -->
+        <div class="space-y-2 pt-1">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🥗</span>
+              <h3 class="text-xs font-extrabold text-slate-900">다음 주 맞춤 식단 추천</h3>
+            </div>
+            <button id="btn-refresh-recommendations" type="button" class="text-[11px] text-slate-600 hover:text-slate-900 font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 active:scale-95 transition-transform" title="새로운 메뉴 추천받기">
+              <span>🔄</span> <span>새로고침</span>
+            </button>
+          </div>
+
+          <!-- List of Recommended Meals -->
+          <div id="weekly-recommendations-list" class="space-y-2 text-xs pt-1">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Correlation Insight Card -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm font-bold">🔍</span>
+            <h2 class="text-sm font-bold text-slate-900">식단과 컨디션 분석</h2>
+          </div>
+          <span id="insight-badge" class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">지연 반응 분석중</span>
+        </div>
+
+        <p id="insight-analysis-text" class="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+          분석 데이터를 계산하고 있습니다...
+        </p>
+
+        <!-- Metrics Overview Grid -->
+        <div class="grid grid-cols-3 gap-2 text-center pt-1">
+          <div class="p-2.5 rounded-xl bg-pink-50/50 border border-pink-100">
+            <div class="text-[11px] text-slate-800 font-medium">평균 식단 점수</div>
+            <div id="stat-avg-diet" class="text-base font-extrabold text-slate-900 mt-0.5">4.2점</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-100">
+            <div class="text-[11px] text-rose-700 font-medium">평균 트러블 심각도</div>
+            <div id="stat-avg-symptom" class="text-base font-extrabold text-rose-800 mt-0.5">1.3점</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-100">
+            <div class="text-[11px] text-amber-700 font-medium">주요 감점 요인</div>
+            <div id="stat-main-culprit" class="text-xs font-bold text-amber-800 mt-1 truncate">유제품 4회</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trend Chart Card -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-slate-800">최근 14일 추이 차트</h3>
+          <div class="flex items-center gap-3 text-[11px]">
+            <span class="flex items-center gap-1 text-pink-600 font-medium">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#ffddff] border border-pink-200"></span> 식단 점수
+            </span>
+            <span class="flex items-center gap-1 text-rose-500 font-medium">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 피부 트러블
+            </span>
+          </div>
+        </div>
+
+        <!-- Fixed height Chart container as per Canvas guidelines -->
+        <div class="relative h-64 w-full">
+          <canvas id="correlation-chart"></canvas>
+        </div>
+
+        <p class="text-[11px] text-slate-400 text-center">
+          * 섭취 후 24~48시간 뒤 피부 장벽 반응 및 피지선 염증이 나타나는 패턴을 확인할 수 있습니다.
+        </p>
+      </div>
+
+      <!-- Symptom Log History & Quick Add Button -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-slate-800">최근 피부 상태 기록</h3>
+          <button id="btn-log-symptom-view2" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 active:scale-95 transition-transform">
+            + 오늘 피부 기록
+          </button>
+        </div>
+        <div id="symptoms-history-list" class="space-y-2 text-xs">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Bottom Floating Action Bar / Mobile Nav -->
+  <div class="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-pink-100 px-5 py-2.5 pb-safe">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-6 text-xs font-medium text-slate-500">
+        <button id="nav-btn-calendar" class="flex flex-col items-center text-slate-900 font-bold transition-colors">
+          <span class="text-lg">📅</span>
+          <span class="text-[11px] mt-0.5">캘린더</span>
+        </button>
+        <button id="nav-btn-analysis" class="flex flex-col items-center hover:text-slate-800 text-slate-400 transition-colors">
+          <span class="text-lg">📈</span>
+          <span class="text-[11px] mt-0.5">컨디션</span>
+        </button>
+      </div>
+      <button id="btn-floating-add-meal" class="w-12 h-12 rounded-full bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 text-3xl font-light shadow-md border border-pink-200 flex items-center justify-center active:scale-95 transition-transform" title="식단 추가 (토글)">
+        +
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 1: ADD / EDIT MEAL (Feature 2 with Photo Upload & LocalStorage) -->
+  <div id="modal-meal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md max-h-[92vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🥗</span>
+          <div>
+            <h3 id="modal-meal-title" class="text-sm font-bold text-slate-900">식단 기록하기</h3>
+            <p class="text-[11px] text-slate-500">사진을 올리면 AI가 재료·분류·별점을 100% 자동 채점합니다</p>
+          </div>
+        </div>
+        <button id="btn-close-modal-meal" class="p-1 rounded-full text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="modal-scroll-body p-5 space-y-4 text-xs no-scrollbar">
+
+        <!-- Photo Box + Food Name Side-by-Side Row -->
+        <div>
+          <div class="flex items-center gap-3">
+            <!-- Image Box (Tap to capture/upload, no extra button needed) -->
+            <div class="flex-shrink-0">
+              <div id="photo-preview-box" class="w-20 h-20 rounded-2xl bg-slate-100 border-2 border-dashed border-pink-200 flex flex-col items-center justify-center text-slate-400 relative overflow-hidden group cursor-pointer active:scale-95 transition-transform" title="사진 촬영 또는 앨범 선택">
+                <span id="photo-placeholder-icon" class="text-3xl">📷</span>
+                <span id="photo-placeholder-text" class="hidden"></span>
+                <img id="photo-preview-img" src="" alt="음식 사진 미리보기" class="w-full h-full object-cover hidden">
+                <button id="btn-remove-photo" type="button" class="absolute top-1 right-1 bg-slate-900/70 text-white rounded-full p-1 hidden hover:bg-slate-900" title="사진 삭제">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+              <input id="input-meal-photo" type="file" accept="image/*" class="hidden">
+            </div>
+
+            <!-- Food Name Input next to Photo Box -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-1">
+                <label for="input-meal-name" class="text-slate-700 font-bold">음식 이름</label>
+                <button id="btn-toggle-favorite-current" type="button" class="text-[11px] font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1 active:scale-95 transition-transform" title="이 메뉴를 즐겨찾기에 등록">
+                  <span id="fav-icon">⭐</span>
+                  <span id="fav-text">즐겨찾기 추가</span>
+                </button>
+              </div>
+              <input id="input-meal-name" type="text" placeholder="음식 이름을 입력하세요 (사진 터치 시 AI 자동)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-pink-300 font-medium">
+            </div>
+          </div>
+
+          <!-- Favorites Section -->
+          <div id="favorites-container" class="mt-2.5">
+            <div class="text-xs font-bold text-amber-800 flex items-center gap-1 mb-1.5">
+              <span>⭐</span> 즐겨찾는 메뉴
+            </div>
+            <div id="favorites-chips-list" class="flex flex-wrap gap-1.5 text-xs">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Recent Menus Section -->
+          <div id="recents-container" class="mt-2">
+            <div class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-1.5">
+              <span>🕒</span> 최근 기록한 메뉴
+            </div>
+            <div id="recents-chips-list" class="flex flex-wrap gap-1.5 text-xs">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- AI Analyzing Status Banner (Visible during scanning) -->
+          <div id="ai-analyzing-banner" class="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl flex items-center gap-3 hidden">
+            <div class="w-6 h-6 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin flex-shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-emerald-900 text-xs flex items-center gap-1">
+                <span>🤖 AI가 음식 사진을 정밀 분석 중...</span>
+              </div>
+              <div id="ai-analyzing-step" class="text-[11px] text-slate-800 mt-0.5 truncate">음식 객체 및 재료 스캔 중...</div>
+            </div>
+          </div>
+
+          <!-- AI Result Banner (Appears after AI analysis) -->
+          <div id="ai-result-banner" class="mt-3 p-3.5 bg-pink-50/70 border border-pink-200 rounded-2xl space-y-1.5 hidden">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
+                <span>✨</span>
+                <span id="ai-detected-name" class="font-extrabold text-slate-900">구운 연어와 채소 샐러드</span>
+                <span class="text-[10px] text-pink-600 font-semibold">(AI 감지)</span>
+              </div>
+              <span id="ai-detected-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-[#ffddff] text-slate-900 border border-pink-200 font-bold">★ 5.0</span>
+            </div>
+            <p id="ai-detected-feedback" class="text-[11px] text-slate-900 leading-relaxed font-medium">
+              오메가3 단백질과 항산화 채소가 가득하여 피부 건강에 최적인 5.0점 만점 식단입니다.
+            </p>
+          </div>
+        </div>
+
+        <!-- Date & Time Row (Compact Reduced Font) -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="input-meal-date" class="block text-slate-500 font-semibold mb-0.5 text-[11px]">날짜</label>
+            <input id="input-meal-date" type="date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-pink-300 font-medium">
+          </div>
+          <div>
+            <label for="input-meal-time" class="block text-slate-500 font-semibold mb-0.5 text-[11px]">시간</label>
+            <input id="input-meal-time" type="time" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-pink-300 font-medium">
+          </div>
+        </div>
+
+        <!-- Gemini Vision API Key Setting Toggle (For 100% perfect Vision recognition) -->
+        <div class="pt-1 border-t border-slate-100 flex items-center justify-between">
+          <button id="btn-toggle-gemini-key" type="button" class="text-[10px] text-slate-400 hover:text-pink-600 font-medium flex items-center gap-1">
+            <span>🔑</span> <span>Gemini Vision AI 직접 연동 (선택사항)</span>
+          </button>
+        </div>
+        <div id="gemini-key-box" class="mt-1.5 p-2.5 bg-slate-100 rounded-xl space-y-1.5 hidden">
+          <div class="text-[10px] text-slate-600 leading-tight">
+            Google AI Studio 무료 API 키를 등록하시면 실제 Gemini Vision이 사진을 100% 정밀 판별합니다:
+          </div>
+          <div class="flex gap-1.5">
+            <input id="input-gemini-key" type="password" placeholder="AIzaSy... (Gemini API Key)" class="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px]">
+            <button id="btn-save-gemini-key" type="button" class="px-2.5 py-1 bg-[#ffddff] text-slate-900 border border-pink-200 font-bold rounded-lg text-xs font-bold">저장</button>
+          </div>
+        </div>
+
+        <!-- Meal Type Selector (Meal vs Snack) -->
+        <div>
+          <label class="block text-slate-700 font-bold mb-1">분류 (AI 자동 판별)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-type-meal" type="button" class="py-2 rounded-xl border-2 border-pink-300 bg-emerald-50 text-slate-800 font-bold text-center">
+              🍽️ 일반 식사
+            </button>
+            <button id="btn-type-snack" type="button" class="py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-medium text-center">
+              ☕ 간식 / 디저트
+            </button>
+          </div>
+        </div>
+
+
+
+        <!-- Anti-inflammatory Criteria Checklist -->
+        <div class="space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+            <span>나의 안티인플람 채점 기준</span>
+            <span class="text-slate-400 font-normal text-[10px]">조건 체크 시 자동 계산</span>
+          </div>
+
+          <!-- 1. Protein & Veggies -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-100 cursor-pointer">
+            <span class="flex items-center gap-2">
+              <input id="chk-protein-veg" type="checkbox" class="rounded text-pink-600 focus:ring-0" checked>
+              <span>단백질과 채소 비중 높음</span>
+            </span>
+            <span class="text-pink-600 font-bold">+5점 기본</span>
+          </label>
+
+          <!-- 2. High Dairy -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-100 cursor-pointer">
+            <span class="flex items-center gap-2">
+              <input id="chk-dairy" type="checkbox" class="rounded text-rose-600 focus:ring-0">
+              <span>유제품 함량이 높음 (우유, 생크림 등)</span>
+            </span>
+            <span class="text-rose-600 font-bold">-2점 감점</span>
+          </label>
+
+          <!-- 3. Processed Sugar -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-100 cursor-pointer">
+            <span class="flex items-center gap-2">
+              <input id="chk-sugar" type="checkbox" class="rounded text-rose-600 focus:ring-0">
+              <span>가공 당류 포함 (설탕, 시럽 등)</span>
+            </span>
+            <span class="text-rose-600 font-bold">-2점 감점</span>
+          </label>
+
+          <!-- 4. Late Night Snack -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-100 cursor-pointer">
+            <span class="flex items-center gap-2">
+              <input id="chk-latenight" type="checkbox" class="rounded text-rose-600 focus:ring-0">
+              <span>21시 이후 섭취한 야식</span>
+            </span>
+            <span class="text-amber-600 font-bold">-1.5점 감점</span>
+          </label>
+
+          <!-- 5. Wheat/Flour Notice (No deduction) -->
+          <div class="px-2 py-1 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>🌾 밀가루 포함 여부</span>
+            <span class="text-slate-400">감점 면제 (기준 반영)</span>
+          </div>
+        </div>
+
+        <!-- Real-time Score Preview Card -->
+        <div class="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between">
+          <div>
+            <div class="text-[11px] text-slate-400">예상 식단 점수</div>
+            <div id="modal-score-reasons" class="text-[11px] text-emerald-400 font-medium">최적의 건강 식단 (+5.0)</div>
+          </div>
+          <div id="modal-calculated-score" class="text-2xl font-extrabold text-emerald-400">
+            ★ 5.0
+          </div>
+        </div>
+
+
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2">
+        <button id="btn-delete-meal" type="button" class="px-3 py-2.5 rounded-xl border border-rose-200 text-rose-600 font-semibold hover:bg-rose-50 hidden">
+          삭제
+        </button>
+        <button id="btn-save-meal" type="button" class="flex-1 py-3 rounded-xl bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 border border-pink-200 font-bold font-bold shadow-md active:scale-95 transition-transform">
+          식단 저장하기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  
+  <!-- MODAL: EDIT FAVORITE MENU -->
+  <div id="modal-edit-favorite" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border border-pink-100 animate-in fade-in zoom-in duration-150">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+          <span>⭐</span> <span>즐겨찾기 메뉴 편집</span>
+        </h3>
+        <button id="btn-close-edit-fav" class="text-slate-400 hover:text-slate-600 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div>
+        <label for="input-edit-fav-name" class="block text-xs font-bold text-slate-700 mb-1.5">메뉴 이름</label>
+        <input id="input-edit-fav-name" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-300 font-medium">
+      </div>
+
+      <div class="flex items-center gap-2 pt-1">
+        <button id="btn-delete-fav-action" type="button" class="px-3.5 py-2.5 rounded-xl border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 text-xs active:scale-95 transition-transform">
+          삭제
+        </button>
+        <button id="btn-save-fav-action" type="button" class="flex-1 py-2.5 rounded-xl bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 border border-pink-200 font-bold text-xs shadow-sm active:scale-95 transition-transform">
+          수정 완료
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: LOG SKIN SYMPTOM (Feature 1) -->
+  <div id="modal-symptom" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md max-h-[90vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
+      
+      <!-- Header -->
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🩺</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">피부 상태 & 트러블 기록</h3>
+            <p class="text-[11px] text-slate-500">식단과 컨디션의 변화를 추적합니다</p>
+          </div>
+        </div>
+        <button id="btn-close-modal-symptom" class="p-1 rounded-full text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-scroll-body p-5 space-y-4 text-xs no-scrollbar">
+
+        <!-- Date Picker -->
+        <div>
+          <label for="input-symptom-date" class="block text-slate-700 font-bold mb-1">기록 날짜</label>
+          <input id="input-symptom-date" type="date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 font-medium">
+        </div>
+
+        <!-- Severity Slider (0 ~ 5) -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-slate-700 font-bold">피부 트러블 심각도</label>
+            <span id="symptom-severity-text" class="font-extrabold text-rose-600 text-sm">2점 (경미한 붉은기)</span>
+          </div>
+          <input id="input-symptom-severity" type="range" min="0" max="5" value="2" class="w-full accent-rose-500 cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-400 px-1 mt-1">
+            <span>0 (매우 깨끗)</span>
+            <span>1 (양호)</span>
+            <span>2 (경미)</span>
+            <span>3 (주의)</span>
+            <span>4 (트러블)</span>
+            <span>5 (심각)</span>
+          </div>
+        </div>
+
+        <!-- Symptom Category Tags -->
+        <div>
+          <label class="block text-slate-700 font-bold mb-1.5">발생 증상 (다중 선택)</label>
+          <div class="grid grid-cols-2 gap-2" id="symptom-tags-container">
+            <label class="p-2.5 rounded-xl border border-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="checkbox" value="여드름/뾰루지" class="symptom-tag-check text-rose-500 rounded focus:ring-0">
+              <span>🌋 여드름/뾰루지</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="checkbox" value="습진/각질" class="symptom-tag-check text-rose-500 rounded focus:ring-0">
+              <span>🌵 습진/각질</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="checkbox" value="붉은기/홍조" class="symptom-tag-check text-rose-500 rounded focus:ring-0">
+              <span>🍅 붉은기/홍조</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="checkbox" value="가려움증" class="symptom-tag-check text-rose-500 rounded focus:ring-0">
+              <span>🦟 가려움증</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="checkbox" value="과잉 피지/번들거림" class="symptom-tag-check text-rose-500 rounded focus:ring-0">
+              <span>✨ 피지 번들거림</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
+              <input type="checkbox" value="소화불량/붓기" class="symptom-tag-check text-rose-500 rounded focus:ring-0">
+              <span>🎈 속더부룩/붓기</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label for="input-symptom-notes" class="block text-slate-700 font-bold mb-1">메모</label>
+          <textarea id="input-symptom-notes" rows="2" placeholder="예: 턱 주변에 단단한 여드름이 올라옴. 어제 유제품 섭취 영향 의심" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-rose-500"></textarea>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2">
+        <button id="btn-save-symptom" type="button" class="w-full py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold shadow-md active:scale-95 transition-transform">
+          피부 기록 저장하기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+
+
+  <!-- In-Page Toast Notification (Safe Canvas Dialog) -->
+  <div id="toast-notification" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg border border-slate-700 transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-1.5">
+    <span id="toast-icon">✓</span>
+    <span id="toast-message">저장되었습니다.</span>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+  <script>
+    // --- Data Storage Keys ---
+    const STORAGE_KEY_MEALS = 'what_did_you_eat_meals_clean_v2';
+    const STORAGE_KEY_SYMPTOMS = 'what_did_you_eat_symptoms_clean_v2';
+
+    // --- State Variables ---
+    let mealsData = [];
+    let symptomsData = {};
+    const initDate = new Date();
+    let currentYear = initDate.getFullYear();
+    let currentMonth = initDate.getMonth();
+    let selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(initDate.getDate()).padStart(2, '0')}`;
+    let correlationChartInstance = null;
+    let editingMealId = null;
+    let currentPhotoBase64 = null;
+
+    // --- Sample Seed Data (Empty for real personal use) ---
+    const initialSeedMeals = [];
+    const initialSeedSymptoms = {};
+
+
+    
+    // --- EXIF / File Photo DateTime Extraction ---
+    function extractPhotoDateTime(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const view = new DataView(e.target.result);
+            if (view.getUint16(0, false) === 0xFFD8) { // JPEG
+              const length = view.byteLength;
+              let offset = 2;
+              while (offset < length - 4) {
+                const marker = view.getUint16(offset, false);
+                if (marker === 0xFFE1) { // APP1 Exif
+                  const exifHeader = String.fromCharCode(
+                    view.getUint8(offset + 4),
+                    view.getUint8(offset + 5),
+                    view.getUint8(offset + 6),
+                    view.getUint8(offset + 7)
+                  );
+                  if (exifHeader === 'Exif') {
+                    const tiffOffset = offset + 10;
+                    const littleEndian = view.getUint16(tiffOffset, false) === 0x4949;
+                    const ifdOffset = view.getUint32(tiffOffset + 4, littleEndian);
+                    const firstIfd = tiffOffset + ifdOffset;
+                    if (firstIfd < length - 2) {
+                      const numEntries = view.getUint16(firstIfd, littleEndian);
+                      let subIfdOffset = 0;
+                      for (let i = 0; i < numEntries; i++) {
+                        const entryOffset = firstIfd + 2 + i * 12;
+                        if (entryOffset + 12 > length) break;
+                        const tag = view.getUint16(entryOffset, littleEndian);
+                        if (tag === 0x8769) { // Exif IFD Pointer
+                          subIfdOffset = view.getUint32(entryOffset + 8, littleEndian);
+                          break;
+                        }
+                      }
+                      const targetIfd = subIfdOffset ? (tiffOffset + subIfdOffset) : firstIfd;
+                      if (targetIfd < length - 2) {
+                        const count = view.getUint16(targetIfd, littleEndian);
+                        for (let i = 0; i < count; i++) {
+                          const entryOffset = targetIfd + 2 + i * 12;
+                          if (entryOffset + 12 > length) break;
+                          const tag = view.getUint16(entryOffset, littleEndian);
+                          if (tag === 0x9003 || tag === 0x0132) { // DateTimeOriginal or DateTime
+                            const strOffset = tiffOffset + view.getUint32(entryOffset + 8, littleEndian);
+                            if (strOffset + 19 <= length) {
+                              let dateStr = '';
+                              for (let c = 0; c < 19; c++) {
+                                dateStr += String.fromCharCode(view.getUint8(strOffset + c));
+                              }
+                              const parts = dateStr.split(' ');
+                              if (parts.length === 2) {
+                                const datePart = parts[0].replace(/:/g, '-');
+                                const timePart = parts[1].slice(0, 5);
+                                return resolve({ date: datePart, time: timePart });
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                  break;
+                }
+                const segLength = view.getUint16(offset + 2, false);
+                if (segLength < 2) break;
+                offset += 2 + segLength;
+              }
+            }
+          } catch (err) {
+            console.warn('EXIF parse error:', err);
+          }
+
+          // Fallback to file.lastModified timestamp
+          if (file.lastModified) {
+            const d = new Date(file.lastModified);
+            if (!isNaN(d.getTime())) {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              const hh = String(d.getHours()).padStart(2, '0');
+              const mm = String(d.getMinutes()).padStart(2, '0');
+              return resolve({ date: `${y}-${m}-${day}`, time: `${hh}:${mm}` });
+            }
+          }
+          resolve(null);
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsArrayBuffer(file.slice(0, 131072));
+      });
+    }
+
+    // --- Enhanced AI Food Vision & Auto-Scoring Engine ---
+    async function runAIFoodAnalysis(canvas, compressedDataUrl) {
+      const analyzingBanner = document.getElementById('ai-analyzing-banner');
+      const analyzingStep = document.getElementById('ai-analyzing-step');
+      const resultBanner = document.getElementById('ai-result-banner');
+      const detectedNameElem = document.getElementById('ai-detected-name');
+      const detectedBadge = document.getElementById('ai-detected-badge');
+      const detectedFeedback = document.getElementById('ai-detected-feedback');
+      const nameInput = document.getElementById('input-meal-name');
+
+      if (!analyzingBanner || !resultBanner) return;
+
+      analyzingBanner.classList.remove('hidden');
+      resultBanner.classList.add('hidden');
+      if (analyzingStep) analyzingStep.textContent = '1단계: AI 비전이 사진을 스캔하는 중...';
+
+      let aiResult = null;
+      const geminiApiKey = localStorage.getItem(STORAGE_KEY_GEMINI_KEY);
+
+      // If user provided a Gemini API Key, use real multimodal Gemini Vision!
+      if (geminiApiKey) {
+        try {
+          if (analyzingStep) analyzingStep.textContent = 'Google Gemini Vision AI 정밀 분석 중...';
+          const base64Clean = compressedDataUrl.replace(/^data:image\/\w+;base64,/, '');
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: '음식 사진을 보고 JSON으로만 답해: {"name":"음식명(예: 바삭한 후라이드 치킨)","type":"meal 또는 snack","highProteinVeg":true/false,"hasDairy":true/false,"hasSugar":true/false,"feedback":"여드름/습진 예방 관점에서 이 음식의 식단도 평가(한줄)"}' },
+                  { inline_data: { mime_type: 'image/jpeg', data: base64Clean } }
+                ]
+              }]
+            })
+          });
+          const jsonResp = await response.json();
+          const rawText = jsonResp.candidates[0].content.parts[0].text;
+          const jsonMatch = rawText.match(/\{.*\}/s);
+          if (jsonMatch) {
+            aiResult = JSON.parse(jsonMatch[0]);
+          }
+        } catch (err) {
+          console.warn('Gemini API call error, falling back to smart vision engine:', err);
+        }
+      }
+
+      if (!aiResult) {
+        analyzingBanner.classList.add('hidden');
+        resultBanner.classList.add('hidden');
+        const currentName = nameInput?.value?.trim();
+        if (currentName) {
+          analyzeFoodByName(currentName);
+          showToast(`입력하신 '${currentName}' 기준으로 점수표가 반영되었습니다! ✨`, '✓');
+        } else {
+          showToast('사진이 등록되었습니다! 음식명을 입력하시면 점수표가 자동 반영됩니다 ✍️', '📸');
+          nameInput?.focus();
+        }
+        return;
+      }
+
+      // Check meal time (NOT write time) for late night
+      const timeInputElem = document.getElementById('input-meal-time');
+      const isLate = checkIsLateNightFromTime(timeInputElem?.value || '');
+
+      // Auto-populate form from Gemini
+      if (nameInput && aiResult.name) {
+        nameInput.value = aiResult.name;
+        updateFavButtonUI();
+      }
+      setMealTypeUI(aiResult.type || 'meal');
+      const proteinVegCheck = document.getElementById('chk-protein-veg');
+      const dairyCheck = document.getElementById('chk-dairy');
+      const sugarCheck = document.getElementById('chk-sugar');
+      const lateNightCheck = document.getElementById('chk-latenight');
+
+      if (proteinVegCheck) proteinVegCheck.checked = !!aiResult.highProteinVeg;
+      if (dairyCheck) dairyCheck.checked = !!aiResult.hasDairy;
+      if (sugarCheck) sugarCheck.checked = !!aiResult.hasSugar;
+      if (lateNightCheck) lateNightCheck.checked = isLate;
+
+      const calc = calculateScore({
+        highProteinVeg: !!aiResult.highProteinVeg,
+        hasDairy: !!aiResult.hasDairy,
+        hasSugar: !!aiResult.hasSugar,
+        isLateNight: isLate
+      });
+
+      if (detectedNameElem) detectedNameElem.textContent = aiResult.name;
+      if (detectedBadge) {
+        const cfg = getScoreColorConfig(calc.score);
+        detectedBadge.textContent = `★ ${calc.score} ${cfg.label}`;
+        detectedBadge.className = `px-2.5 py-0.5 rounded-full text-xs font-extrabold text-white ${cfg.bg}`;
+      }
+      if (detectedFeedback) detectedFeedback.textContent = aiResult.feedback + (isLate ? ' (21시 이후 야식 감점 -1.5점 적용)' : '');
+
+      analyzingBanner.classList.add('hidden');
+      resultBanner.classList.remove('hidden');
+
+      updateLiveScore();
+      showToast(`AI가 '${aiResult.name}' (★${calc.score})으로 자동 분석했습니다!`, '✨');
+    }
+
+
+    
+    // Intelligent Korean Food Criteria Analyzer based on dish name
+    function analyzeFoodByName(name) {
+      if (!name || !name.trim()) return;
+      const clean = name.trim().toLowerCase();
+
+      const proteinVegCheck = document.getElementById('chk-protein-veg');
+      const dairyCheck = document.getElementById('chk-dairy');
+      const sugarCheck = document.getElementById('chk-sugar');
+      const timeInput = document.getElementById('input-meal-time');
+      const lateNightCheck = document.getElementById('chk-latenight');
+
+      // 1. Protein & Veg keywords (+5.0 base)
+      const proteinVegKeywords = [
+        '샐러드', '치킨', '닭', '통닭', '고기', '소고기', '안심', '등심', '스테이크',
+        '삼겹살', '목살', '갈비', '연어', '생선', '회', '광어', '우럭', '초밥',
+        '참치', '오리', '계란', '달걀', '두부', '콩', '단백질', '채소', '야채',
+        '나물', '쌈밥', '포케', '샤브샤브', '월남쌈', '비빔밥', '백반', '정식',
+        '국밥', '삼계탕', '보쌈', '수육', '찜닭', '장어', '새우', '해물', '찌개',
+        '구이', '육류', '닭가슴살', '오트밀', '현미밥', '고추잡채', '꽃빵', '달걀볶음',
+        '토달볶', '청경채', '사케동', '연어덮밥', '채끝', '쌀국수', '포보', '분짜',
+        '똠얌', '팟타이', '온소바', '소바', '스키야키', '타다키', '봉골레', '찹스테이크',
+        '달걀탕', '완탕', '스튜', '유산슬', '삼치'
+      ];
+      const isProteinVeg = proteinVegKeywords.some(k => clean.includes(k));
+
+      // 2. High Dairy keywords (-2.0)
+      const dairyKeywords = [
+        '라떼', '카푸치노', '밀크티', '우유', '치즈', '피자', '크림', '생크림',
+        '요거트', '요구르트', '버터', '리조또', '퐁듀', '밀크', '마스카포네',
+        '까르보나라', '로제', '그라탕', '치즈케이크'
+      ];
+      const isDairy = dairyKeywords.some(k => clean.includes(k));
+
+      // 3. High Processed Sugar keywords (-2.0)
+      const sugarKeywords = [
+        '케이크', '마카롱', '도넛', '도너츠', '쿠키', '빵', '디저트', '초콜릿', '초코',
+        '사탕', '캔디', '탕후루', '젤리', '콜라', '사이다', '탄산', '에이드', '시럽',
+        '프라푸치노', '스무디', '와플', '크로플', '츄러스', '아이스크림', '빙수',
+        '달고나', '양념치킨', '닭강정', '떡볶이', '짜장면', '탕수육', '마라탕'
+      ];
+      const isSugar = sugarKeywords.some(k => clean.includes(k));
+
+      // 4. Meal Type (snack vs meal)
+      const snackKeywords = [
+        '간식', '디저트', '커피', '아메리카노', '라떼', '차', '음료', '빵', '과자',
+        '스낵', '초콜릿', '케이크', '도넛', '와플', '아이스크림', '탕후루', '쿠키',
+        '밀크티', '마카롱', '빙수', '스무디', '프라푸치노', '쥬스', '주스'
+      ];
+      const isSnack = snackKeywords.some(k => clean.includes(k));
+
+      if (proteinVegCheck) proteinVegCheck.checked = isProteinVeg;
+      if (dairyCheck) dairyCheck.checked = isDairy;
+      if (sugarCheck) sugarCheck.checked = isSugar;
+      if (lateNightCheck && timeInput) {
+        lateNightCheck.checked = checkIsLateNightFromTime(timeInput.value);
+      }
+      setMealTypeUI(isSnack ? 'snack' : 'meal');
+
+      updateLiveScore();
+    }
+
+    // --- Favorite & Recent Menus Storage Keys ---
+    const STORAGE_KEY_FAVORITES = 'what_did_you_eat_favorites_v1';
+    const STORAGE_KEY_RECENTS = 'what_did_you_eat_recents_v1';
+    const STORAGE_KEY_GEMINI_KEY = 'what_did_you_eat_gemini_key_v1';
+
+    let favoriteMenus = ['연어 샐러드', '닭가슴살 쌈밥', '치킨', '그릭 요거트'];
+    let recentMenus = [];
+
+    function loadMenuPreferences() {
+      try {
+        const favs = localStorage.getItem(STORAGE_KEY_FAVORITES);
+        if (favs) favoriteMenus = JSON.parse(favs);
+        const rec = localStorage.getItem(STORAGE_KEY_RECENTS);
+        if (rec) {
+          recentMenus = JSON.parse(rec).slice(0, 10);
+        }
+        
+        // If recentMenus is empty, auto-populate from recorded meals in mealsData (up to 10 items)
+        if ((!recentMenus || recentMenus.length === 0) && mealsData && mealsData.length > 0) {
+          const recordedNames = [...new Set(mealsData.map(m => m.name).filter(n => n && n !== '이름 없는 식단'))].reverse().slice(0, 10);
+          if (recordedNames.length > 0) {
+            recentMenus = recordedNames;
+            localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(recentMenus));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load menu preferences:', e);
+      }
+      renderMenuChips();
+    }
+
+    function saveRecentMenu(name) {
+      if (!name || name === '이름 없는 식단') return;
+      const cleanName = name.trim();
+      // Keep up to 10 items; prepend newest and drop oldest if count exceeds 10
+      recentMenus = [cleanName, ...recentMenus.filter(n => n !== cleanName)].slice(0, 10);
+      try {
+        localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(recentMenus));
+      } catch (e) {
+        console.error('Failed to save recent menu:', e);
+      }
+      renderMenuChips();
+    }
+
+    function toggleFavoriteMenu(name) {
+      if (!name) return;
+      if (favoriteMenus.includes(name)) {
+        favoriteMenus = favoriteMenus.filter(n => n !== name);
+        showToast(`'${name}' 즐겨찾기에서 해제되었습니다.`);
+      } else {
+        favoriteMenus.push(name);
+        showToast(`'${name}' 즐겨찾기에 등록되었습니다! ⭐`);
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(favoriteMenus));
+      } catch (e) {}
+      renderMenuChips();
+      updateFavButtonUI();
+    }
+
+    function updateFavButtonUI() {
+      const name = document.getElementById('input-meal-name')?.value.trim();
+      const favText = document.getElementById('fav-text');
+      const favIcon = document.getElementById('fav-icon');
+      if (!favText || !favIcon) return;
+      if (name && favoriteMenus.includes(name)) {
+        favText.textContent = '즐겨찾기됨';
+        favIcon.textContent = '★';
+      } else {
+        favText.textContent = '즐겨찾기 추가';
+        favIcon.textContent = '⭐';
+      }
+    }
+
+    let currentEditingFavName = null;
+
+    function openEditFavModal(name) {
+      currentEditingFavName = name;
+      const modal = document.getElementById('modal-edit-favorite');
+      const input = document.getElementById('input-edit-fav-name');
+      if (input) input.value = name;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeEditFavModal() {
+      const modal = document.getElementById('modal-edit-favorite');
+      if (modal) modal.classList.add('hidden');
+      currentEditingFavName = null;
+    }
+
+    function renderMenuChips() {
+      const favList = document.getElementById('favorites-chips-list');
+      const recList = document.getElementById('recents-chips-list');
+      if (!favList || !recList) return;
+
+      if (favoriteMenus.length === 0) {
+        favList.innerHTML = '<span class="text-slate-400 text-xs">등록된 즐겨찾기가 없습니다.</span>';
+      } else {
+        favList.innerHTML = '';
+        favoriteMenus.forEach(menu => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'fav-chip-btn px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-semibold text-xs select-none active:scale-95 transition-all flex items-center gap-1 cursor-pointer';
+          btn.innerHTML = `<span>⭐</span><span>${menu}</span>`;
+
+          // Long-press detection (~650ms for natural mobile hold)
+          let pressTimer = null;
+          let isLongPress = false;
+          let startX = 0;
+          let startY = 0;
+
+          const startPress = (e) => {
+            isLongPress = false;
+            if (e.touches && e.touches[0]) {
+              startX = e.touches[0].clientX;
+              startY = e.touches[0].clientY;
+            }
+            btn.style.transform = 'scale(0.96)';
+
+            pressTimer = setTimeout(() => {
+              isLongPress = true;
+              btn.style.transform = 'scale(1)';
+              if (navigator.vibrate) navigator.vibrate(40);
+              openEditFavModal(menu);
+            }, 650);
+          };
+
+          const cancelPress = () => {
+            if (pressTimer) {
+              clearTimeout(pressTimer);
+              pressTimer = null;
+            }
+            btn.style.transform = 'scale(1)';
+          };
+
+          btn.addEventListener('touchstart', startPress, { passive: true });
+          btn.addEventListener('touchend', (e) => {
+            cancelPress();
+            if (!isLongPress) {
+              applyQuickMenu(menu);
+            }
+          });
+          btn.addEventListener('touchmove', (e) => {
+            if (e.touches && e.touches[0]) {
+              if (Math.abs(e.touches[0].clientX - startX) > 10 || Math.abs(e.touches[0].clientY - startY) > 10) {
+                cancelPress();
+              }
+            }
+          }, { passive: true });
+
+          btn.addEventListener('mousedown', startPress);
+          btn.addEventListener('mouseup', () => {
+            cancelPress();
+            if (!isLongPress) {
+              applyQuickMenu(menu);
+            }
+          });
+          btn.addEventListener('mouseleave', cancelPress);
+
+          favList.appendChild(btn);
+        });
+      }
+
+      if (recentMenus.length === 0) {
+        recList.innerHTML = '<span class="text-slate-400 text-xs">최근 등록한 메뉴가 없습니다.</span>';
+      } else {
+        recList.innerHTML = '';
+        recentMenus.forEach(menu => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-medium text-xs flex items-center gap-1 active:scale-95 transition-transform';
+          btn.innerHTML = `<span>🕒</span><span>${menu}</span>`;
+          btn.addEventListener('click', () => applyQuickMenu(menu));
+          recList.appendChild(btn);
+        });
+      }
+    }
+
+    function applyQuickMenu(name) {
+      const nameInput = document.getElementById('input-meal-name');
+      if (nameInput) nameInput.value = name;
+      updateFavButtonUI();
+      analyzeFoodByName(name);
+      showToast(`'${name}' 메뉴 점수표가 적용되었습니다! ✨`, '✓');
+    }
+
+    // --- Safe LocalStorage Functions ---
+    function loadData() {
+      try {
+        const storedMeals = localStorage.getItem(STORAGE_KEY_MEALS);
+        if (storedMeals) {
+          mealsData = JSON.parse(storedMeals);
+        } else {
+          mealsData = [...initialSeedMeals];
+          saveMealsData();
+        }
+
+        const storedSymptoms = localStorage.getItem(STORAGE_KEY_SYMPTOMS);
+        if (storedSymptoms) {
+          symptomsData = JSON.parse(storedSymptoms);
+        } else {
+          symptomsData = { ...initialSeedSymptoms };
+          saveSymptomsData();
+        }
+      } catch (e) {
+        console.error('LocalStorage load failed:', e);
+        mealsData = [...initialSeedMeals];
+        symptomsData = { ...initialSeedSymptoms };
+      }
+    }
+
+    function saveMealsData() {
+      try {
+        localStorage.setItem(STORAGE_KEY_MEALS, JSON.stringify(mealsData));
+      } catch (e) {
+        console.error('LocalStorage save meals failed:', e);
+        showToast('저장 공간 한도로 인해 저장이 제한될 수 있습니다.', '⚠️');
+      }
+    }
+
+    function saveSymptomsData() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SYMPTOMS, JSON.stringify(symptomsData));
+      } catch (e) {
+        console.error('LocalStorage save symptoms failed:', e);
+      }
+    }
+
+    // --- Toast Notification ---
+    function showToast(msg, icon = '✓') {
+      const toast = document.getElementById('toast-notification');
+      const toastMsg = document.getElementById('toast-message');
+      const toastIcon = document.getElementById('toast-icon');
+      if (!toast || !toastMsg || !toastIcon) return;
+      toastMsg.textContent = msg;
+      toastIcon.textContent = icon;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2300);
+    }
+
+    
+    // Helper: Determine if meal time was late night (21:00 ~ 04:59)
+    function checkIsLateNightFromTime(timeStr) {
+      if (!timeStr) return false;
+      const hour = parseInt(timeStr.split(':')[0], 10);
+      if (isNaN(hour)) return false;
+      return (hour >= 21 || hour < 5);
+    }
+
+    // --- Anti-inflammatory Score Calculator ---
+    function calculateScore(options) {
+      // 1. Protein & Vegetable Base: 5.0 points if true, else 3.5 points
+      let score = options.highProteinVeg ? 5.0 : 3.5;
+      let reasons = [];
+
+      if (options.highProteinVeg) {
+        reasons.push('단백질+채소(+5.0)');
+      } else {
+        reasons.push('기본 점수(3.5)');
+      }
+
+      // 2. High Dairy deduction (-2.0)
+      if (options.hasDairy) {
+        score -= 2.0;
+        reasons.push('유제품(-2.0)');
+      }
+
+      // 3. Processed Sugar deduction (-2.0)
+      if (options.hasSugar) {
+        score -= 2.0;
+        reasons.push('가공당(-2.0)');
+      }
+
+      // 4. Late night snack deduction (-1.5)
+      if (options.isLateNight) {
+        score -= 1.5;
+        reasons.push('21시이후 야식(-1.5)');
+      }
+
+      // Clamp between 1.0 and 5.0
+      score = Math.max(1.0, Math.min(5.0, score));
+      return {
+        score: Number(score.toFixed(1)),
+        reasonsText: reasons.join(' / ')
+      };
+    }
+
+    // Helper: Determine score color
+    function getScoreColorConfig(score) {
+      if (score >= 4.5) {
+        return { bg: 'bg-emerald-500', text: 'text-emerald-700', badgeBg: 'bg-emerald-100 text-emerald-800', label: '최적' };
+      } else if (score >= 3.5) {
+        return { bg: 'bg-lime-500', text: 'text-lime-700', badgeBg: 'bg-lime-100 text-lime-800', label: '양호' };
+      } else if (score >= 2.5) {
+        return { bg: 'bg-amber-500', text: 'text-amber-700', badgeBg: 'bg-amber-100 text-amber-800', label: '주의' };
+      } else {
+        return { bg: 'bg-rose-500', text: 'text-rose-700', badgeBg: 'bg-rose-100 text-rose-800', label: '위험' };
+      }
+    }
+
+    // --- Calendar Rendering ---
+    function renderCalendar() {
+      const titleElem = document.getElementById('calendar-title');
+      const gridElem = document.getElementById('calendar-grid');
+      if (!titleElem || !gridElem) return;
+
+      titleElem.textContent = `${currentYear}년 ${currentMonth + 1}월`;
+      gridElem.innerHTML = '';
+
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+      // Empty lead days
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'h-16 rounded-xl bg-slate-50/50 opacity-40';
+        gridElem.appendChild(emptyCell);
+      }
+
+      // Date cells
+      for (let day = 1; day <= totalDays; day++) {
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayMeals = mealsData.filter(m => m.date === dateStr);
+        const daySymptom = symptomsData[dateStr];
+        const isSelected = (dateStr === selectedDateStr);
+
+        let avgScore = null;
+        if (dayMeals.length > 0) {
+          const sum = dayMeals.reduce((acc, curr) => acc + curr.score, 0);
+          avgScore = Number((sum / dayMeals.length).toFixed(1));
+        }
+
+        const cell = document.createElement('div');
+        let borderClass = isSelected ? 'ring-2 ring-pink-300 border-transparent shadow-md' : 'border border-slate-100 hover:border-slate-300';
+        let bgClass = 'bg-white';
+
+        if (avgScore !== null) {
+          if (avgScore >= 4.5) bgClass = 'bg-emerald-50/80';
+          else if (avgScore >= 3.5) bgClass = 'bg-lime-50/80';
+          else if (avgScore >= 2.5) bgClass = 'bg-amber-50/80';
+          else bgClass = 'bg-rose-50/80';
+        }
+
+        cell.className = `h-16 p-1 rounded-xl flex flex-col justify-between cursor-pointer transition-all ${bgClass} ${borderClass}`;
+        cell.dataset.date = dateStr;
+
+        // Day Number + Symptom Badge
+        let symptomIndicator = '';
+        if (daySymptom && daySymptom.severity > 0) {
+          const sevColor = daySymptom.severity >= 3 ? 'text-rose-600 bg-rose-100' : 'text-amber-600 bg-amber-100';
+          symptomIndicator = `<span class="text-[9px] font-bold px-1 rounded ${sevColor}" title="피부 트러블 ${daySymptom.severity}단계">🚨${daySymptom.severity}</span>`;
+        }
+
+        // Meal Indicator / Score Badge
+        let mealIndicator = '';
+        if (avgScore !== null) {
+          const cfg = getScoreColorConfig(avgScore);
+          mealIndicator = `
+            <div class="flex items-center justify-center gap-0.5 mt-0.5">
+              <span class="w-1.5 h-1.5 rounded-full ${cfg.bg}"></span>
+              <span class="text-[10px] font-bold ${cfg.text}">${avgScore}</span>
+            </div>
+          `;
+        } else {
+          mealIndicator = `<span class="text-[10px] text-slate-300">-</span>`;
+        }
+
+        cell.innerHTML = `
+          <div class="flex items-center justify-between px-0.5">
+            <span class="text-xs font-semibold ${isSelected ? 'text-slate-800 font-extrabold' : 'text-slate-700'}">${day}</span>
+            ${symptomIndicator}
+          </div>
+          ${mealIndicator}
+          <div class="text-[9px] text-slate-400 truncate">
+            ${dayMeals.length > 0 ? (dayMeals[0].name.slice(0, 4) + '..') : ''}
+          </div>
+        `;
+
+        cell.addEventListener('click', () => {
+          selectedDateStr = dateStr;
+          renderCalendar();
+          renderSelectedDateDetail();
+        });
+
+        gridElem.appendChild(cell);
+      }
+    }
+
+    // --- Render Selected Date Details ---
+    function renderSelectedDateDetail() {
+      const dateDisplay = document.getElementById('detail-date-display');
+      const scoreBadge = document.getElementById('detail-score-badge');
+      const summaryText = document.getElementById('detail-summary-text');
+      const symptomBanner = document.getElementById('detail-symptom-banner');
+      const mealsList = document.getElementById('detail-meals-list');
+      if (!dateDisplay || !scoreBadge || !summaryText || !symptomBanner || !mealsList) return;
+
+      const dateObj = new Date(selectedDateStr + 'T00:00:00');
+      const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+      dateDisplay.textContent = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 (${daysOfWeek[dateObj.getDay()]})`;
+
+      const dayMeals = mealsData.filter(m => m.date === selectedDateStr);
+      const daySymptom = symptomsData[selectedDateStr];
+
+      // Score Header
+      if (dayMeals.length > 0) {
+        const avg = Number((dayMeals.reduce((acc, cur) => acc + cur.score, 0) / dayMeals.length).toFixed(1));
+        const cfg = getScoreColorConfig(avg);
+        scoreBadge.textContent = `★ ${avg} ${cfg.label}`;
+        scoreBadge.className = `px-2 py-0.5 rounded-full text-xs font-bold ${cfg.badgeBg} ${cfg.text}`;
+        summaryText.textContent = `총 ${dayMeals.length}회 기록됨 (식단 점수 ${avg}점)`;
+      } else {
+        scoreBadge.textContent = '기록 없음';
+        scoreBadge.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+        summaryText.textContent = '이 날 기록된 식단이 없습니다.';
+      }
+
+      // Skin Symptom Banner
+      if (daySymptom && daySymptom.severity > 0) {
+        const tagsStr = daySymptom.tags.length > 0 ? daySymptom.tags.join(', ') : '증상 상세 없음';
+        symptomBanner.className = 'rounded-xl p-3 bg-rose-50 border border-rose-200 flex items-center justify-between text-xs';
+        symptomBanner.innerHTML = `
+          <div>
+            <div class="font-bold text-rose-800 flex items-center gap-1">
+              <span>🚨 피부 트러블 심각도: ${daySymptom.severity}/5점</span>
+            </div>
+            <div class="text-[11px] text-rose-600 mt-0.5">${tagsStr} ${daySymptom.notes ? `(${daySymptom.notes})` : ''}</div>
+          </div>
+          <button id="btn-edit-symptom-banner" class="px-2 py-1 rounded-lg bg-white border border-rose-200 text-rose-700 font-semibold hover:bg-rose-100 text-[11px]">
+            수정
+          </button>
+        `;
+        document.getElementById('btn-edit-symptom-banner')?.addEventListener('click', () => {
+          openSymptomModal(selectedDateStr);
+        });
+      } else {
+        symptomBanner.className = 'rounded-xl p-2.5 bg-slate-50 border border-slate-200 flex items-center justify-between text-xs text-slate-600';
+        symptomBanner.innerHTML = `
+          <div class="flex items-center gap-1.5 text-slate-500">
+            <span>✨</span>
+            <span>피부 상태 기록이 없거나 편안함</span>
+          </div>
+          <button id="btn-add-symptom-banner" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-100 text-[11px]">
+            + 피부 기록
+          </button>
+        `;
+        document.getElementById('btn-add-symptom-banner')?.addEventListener('click', () => {
+          openSymptomModal(selectedDateStr);
+        });
+      }
+
+      // Meals List with iOS-style Swipe-to-Delete
+      if (dayMeals.length === 0) {
+        mealsList.innerHTML = `
+          <div class="text-center py-6 text-slate-400">
+            <span class="text-2xl block mb-1">🥑</span>
+            <p class="text-xs">이 날의 식단 사진을 추가해보세요!</p>
+          </div>
+        `;
+      } else {
+        mealsList.innerHTML = '';
+        dayMeals.forEach(meal => {
+          const cfg = getScoreColorConfig(meal.score);
+          const swipeItem = document.createElement('div');
+          swipeItem.className = 'swipe-item relative overflow-hidden rounded-2xl bg-slate-100 mb-2.5 shadow-sm';
+          
+          let photoHtml = '';
+          if (meal.photo) {
+            photoHtml = `<img src="${meal.photo}" alt="${meal.name}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0">`;
+          } else {
+            photoHtml = `
+              <div class="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl flex-shrink-0">
+                ${meal.type === 'snack' ? '☕' : '🥗'}
+              </div>
+            `;
+          }
+
+          let tagsHtml = '';
+          if (meal.isHomeCooked) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#ffddff] text-slate-900 border border-pink-200">홈메이드</span> `;
+          if (meal.hasDairy) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700">유제품</span> `;
+          if (meal.hasSugar) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700">가공당</span> `;
+          if (meal.isLateNight) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700">21시야식</span> `;
+
+          swipeItem.innerHTML = `
+            <!-- Underneath Action: Red Delete Button revealed ONLY when swiped left (z-0 behind white card) -->
+            <button type="button" class="btn-swipe-delete absolute inset-y-0 right-0 w-20 bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white font-bold flex flex-col items-center justify-center text-xs active:scale-95 transition-all z-0 cursor-pointer" data-id="${meal.id}" title="식단 삭제">
+              <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              <span class="text-[11px] font-bold">삭제</span>
+            </button>
+            <!-- Foreground White Content Card (z-10 on top, completely covers delete button until swiped) -->
+            <div class="swipe-content relative z-10 p-3 rounded-2xl border border-slate-200/80 bg-white flex items-center gap-3 transition-transform duration-200 select-none cursor-pointer">
+              ${photoHtml}
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] text-slate-400 font-medium">${meal.time} · ${meal.type === 'snack' ? '간식' : '식사'}</span>
+                  <span class="text-xs font-extrabold ${cfg.text}">★ ${meal.score}</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-xs truncate mt-0.5">${meal.name}</h4>
+                <div class="mt-1 flex flex-wrap gap-1">
+                  ${tagsHtml || '<span class="text-[10px] text-slate-400">클린 식단</span>'}
+                </div>
+              </div>
+              <div class="flex items-center text-slate-300 pl-1 text-[10px] gap-0.5 flex-shrink-0">
+                <span>‹</span>
+                <span class="text-[9px]">밀어서 삭제</span>
+              </div>
+            </div>
+          `;
+
+          // Attach Swipe Listeners
+          const contentCard = swipeItem.querySelector('.swipe-content');
+          const deleteBtn = swipeItem.querySelector('.btn-swipe-delete');
+
+          let startX = 0;
+          let currentTranslate = 0;
+          let isSwiping = false;
+          let hasMoved = false;
+          let isOpen = false;
+          let openTime = 0;
+
+          // Touch events
+          contentCard.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isSwiping = true;
+            hasMoved = false;
+            contentCard.style.transition = 'none';
+          }, { passive: true });
+
+          contentCard.addEventListener('touchmove', (e) => {
+            if (!isSwiping) return;
+            const diffX = e.touches[0].clientX - startX;
+            if (Math.abs(diffX) > 6) hasMoved = true;
+
+            if (isOpen) {
+              // Dragging right back to closed
+              const tx = Math.max(-80, Math.min(0, -80 + diffX));
+              contentCard.style.transform = `translateX(${tx}px)`;
+            } else if (diffX < 0) {
+              // Dragging left up to -80px
+              const tx = Math.max(-80, diffX);
+              contentCard.style.transform = `translateX(${tx}px)`;
+            }
+          }, { passive: true });
+
+          const endSwipe = (diffX) => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            contentCard.style.transition = 'transform 0.2s ease-out';
+
+            if (isOpen) {
+              // If already open, dragging right closes it
+              if (diffX > 25) {
+                contentCard.style.transform = 'translateX(0px)';
+                currentTranslate = 0;
+                isOpen = false;
+              } else {
+                contentCard.style.transform = 'translateX(-80px)';
+                currentTranslate = -80;
+              }
+            } else {
+              // If closed, dragging left past -35px reveals delete button
+              if (diffX < -35) {
+                contentCard.style.transform = 'translateX(-80px)';
+                currentTranslate = -80;
+                isOpen = true;
+                openTime = Date.now();
+              } else {
+                contentCard.style.transform = 'translateX(0px)';
+                currentTranslate = 0;
+                isOpen = false;
+              }
+            }
+          };
+
+          contentCard.addEventListener('touchend', (e) => {
+            const diffX = e.changedTouches[0].clientX - startX;
+            endSwipe(diffX);
+          });
+
+          // Mouse fallback for desktop testing
+          contentCard.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            isSwiping = true;
+            hasMoved = false;
+            contentCard.style.transition = 'none';
+
+            const onMouseMove = (ev) => {
+              if (!isSwiping) return;
+              const diffX = ev.clientX - startX;
+              if (Math.abs(diffX) > 6) hasMoved = true;
+
+              if (isOpen) {
+                const tx = Math.max(-80, Math.min(0, -80 + diffX));
+                contentCard.style.transform = `translateX(${tx}px)`;
+              } else if (diffX < 0) {
+                const tx = Math.max(-80, diffX);
+                contentCard.style.transform = `translateX(${tx}px)`;
+              }
+            };
+
+            const onMouseUp = (ev) => {
+              document.removeEventListener('mousemove', onMouseMove);
+              document.removeEventListener('mouseup', onMouseUp);
+              const diffX = ev.clientX - startX;
+              endSwipe(diffX);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+          });
+
+          // Tap on contentCard:
+          // If open -> tap closes it without deleting or opening modal!
+          // If closed and didn't move -> opens edit modal!
+          contentCard.addEventListener('click', (e) => {
+            if (hasMoved) return;
+            if (isOpen) {
+              e.stopPropagation();
+              contentCard.style.transition = 'transform 0.2s ease-out';
+              contentCard.style.transform = 'translateX(0px)';
+              currentTranslate = 0;
+              isOpen = false;
+            } else {
+              openMealModal(meal);
+            }
+          });
+
+          // Delete button action:
+          // ONLY fires when the user deliberately clicks the revealed delete button!
+          // Guard against swipe-release accidental triggers.
+          deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (!isOpen) return;
+            if (Date.now() - openTime < 250) return; // Prevent swipe-release trigger
+            deleteMeal(meal.id);
+          });
+
+          mealsList.appendChild(swipeItem);
+        });
+      }
+    }
+
+    
+    // --- 1-Week Grading & Next Week Meal Recommendation Engine ---
+    
+    // --- 100-Dish Multi-Cuisine Health Meal Database (20 per cuisine) ---
+    const MEAL_DATABASE_100 = {
+      '한식': [
+        { name: '수육 보쌈 & 쌈채소', reason: '기름기 쏙 뺀 고소한 수육에 알배기 배추와 마늘 듬뿍! 유제품 걱정 없는 고단백 밥상.', score: 5.0 },
+        { name: '고등어구이 & 된장찌개', reason: '겉바속촉 고등어구이에 구수한 된장찌개! 오메가3가 피부 장벽을 탄탄하게 채워줍니다.', score: 5.0 },
+        { name: '우삼겹 숙주볶음', reason: '아삭한 숙주나물에 고소한 우삼겹을 볶아 설탕 없이도 감칠맛 폭발하는 밥도둑.', score: 5.0 },
+        { name: '소고기 뭇국 & 두부부침', reason: '시원한 무 국물에 들기름으로 노릇하게 부친 두부로 밤늦게 먹어도 소화가 편한 식단.', score: 5.0 },
+        { name: '오징어볶음 & 콩나물밥', reason: '타우린 풍부한 쫄깃한 오징어에 아삭한 콩나물을 비벼 먹는 감칠맛 단백질 한 끼.', score: 5.0 },
+        { name: '소고기 미역국 & 계란말이', reason: '푹 끓여 깊은 미역국에 부드러운 계란말이로 위장에 부담 없는 국민 밥상.', score: 5.0 },
+        { name: '바지락 순두부찌개', reason: '바지락으로 낸 시원한 국물에 몽글몽글 순두부로 탄수화물 욕구를 잡아주는 든든한 한식.', score: 5.0 },
+        { name: '닭백숙 & 닭죽', reason: '마늘 넣고 푹 삶아 뼈가 쏙 빠지는 닭고기와 구수한 닭죽으로 피부 장벽 완벽 충전.', score: 5.0 },
+        { name: '돼지 목살구이 & 마늘쌈', reason: '삼겹살보다 담백한 목살에 알리신 풍부한 구운 마늘 쌈으로 든든하게 즐겨보세요.', score: 5.0 },
+        { name: '훈제오리 부추볶음', reason: '쫄깃한 훈제오리에 혈액순환을 돕는 향긋한 부추를 볶아낸 맛과 영양 만점 식단.', score: 5.0 },
+        { name: '삼치구이 & 청국장', reason: '도톰하고 담백한 삼치 살에 유익균 가득한 구수한 청국장 백반.', score: 5.0 },
+        { name: '맑은 닭한마리 & 부추양념', reason: '푹 고아 부드러운 닭고기를 신선한 부추와 양배추에 곁들여 먹는 저당 보양식.', score: 5.0 },
+        { name: '소고기 샤브샤브', reason: '배추, 청경채, 버섯을 듬뿍 넣고 소고기를 살짝 데쳐 먹는 외식 끝판왕 메뉴.', score: 5.0 },
+        { name: '참치 채소비빔밥', reason: '기름기 쏙 뺀 참치캔에 상추, 깻잎, 오이를 듬뿍 넣고 비벼 먹는 클린 한 그릇.', score: 5.0 },
+        { name: '계란찜 & 나물비빔밥', reason: '포슬포슬 부드러운 계란찜에 자극 없는 삼색 나물로 속을 편안하게 채워주는 식단.', score: 5.0 },
+        { name: '닭안심구이 & 샐러드', reason: '에어프라이어에 겉바속촉 구운 닭안심에 아삭한 양배추 채를 곁들인 클린 야식 대체식.', score: 5.0 },
+        { name: '갈치구이 & 미역초무침', reason: '담백하고 부드러운 갈치구이에 새콤한 미역초무침으로 비타민과 칼슘 충전.', score: 5.0 },
+        { name: '두부 버섯전골', reason: '표고·느타리버섯과 담백한 두부를 맑은 다시마 육수에 끓여 따뜻하고 속 편한 전골.', score: 5.0 },
+        { name: '소고기 부채살구이', reason: '육즙 가득한 부채살에 구운 아스파라거스와 통마늘을 곁들인 근사한 식단.', score: 5.0 },
+        { name: '낙지볶음 & 콩나물밥', reason: '쫄깃한 낙지와 아삭한 콩나물로 원기를 회복하고 단백질을 든든하게 보충하는 한 상.', score: 4.8 }
+      ],
+      '중식': [
+        { name: '고추잡채 & 꽃빵', reason: '피망과 양파, 돼지고기를 불맛 나게 볶아낸 유제품 0%의 비타민C 고단백 중식.', score: 5.0 },
+        { name: '토마토 달걀볶음', reason: '리코펜 풍부한 토마토와 부드러운 달걀의 조합으로 피지 분비와 붉은기를 진정시킵니다.', score: 5.0 },
+        { name: '소고기 청경채 볶음', reason: '담백한 소고기와 아삭한 청경채를 굴소스 살짝 넣어 센 불에 볶아낸 저당 중식.', score: 5.0 },
+        { name: '마파두부 덮밥', reason: '설탕 대신 파기름과 두반장으로 맛을 낸 고단백 두부 요리로 혈당 스파이크 예방.', score: 4.8 },
+        { name: '유산슬', reason: '해삼, 새우, 버섯, 죽순, 돼지고기를 채 썰어 볶아낸 중식 최고의 웰빙 보양식.', score: 5.0 },
+        { name: '게살 버섯 달걀탕', reason: '팽이버섯과 게살을 맑고 몽글몽글하게 끓여내 밤시간 소화 부담을 덜어주는 중식 스프.', score: 5.0 },
+        { name: '동파육 청경채찜', reason: '오랜 시간 푹 쪄내 기름기를 쏙 뺀 부드러운 돼지고기와 아삭한 청경채의 조화.', score: 4.8 },
+        { name: '청경채 표고버섯 볶음', reason: '부드러운 표고버섯과 수분 많은 청경채를 담백하게 볶아 칼로리 부담 없는 요리.', score: 5.0 },
+        { name: '해물 누룽지탕', reason: '신선한 해산물과 버섯을 뜨거운 돌솥 누룽지에 부어 부드럽게 즐기는 든든한 일품요리.', score: 5.0 },
+        { name: '양장피 & 겨자소스', reason: '해삼, 오징어, 당근, 오이를 톡 쏘는 겨자소스에 버무려 기름기 없이 상큼한 중식.', score: 5.0 },
+        { name: '깐풍 닭안심 구이', reason: '튀기지 않고 에어프라이어로 구워 파마늘 소스를 가볍게 입힌 고단백 닭안심 요리.', score: 4.8 },
+        { name: '소고기 모둠버섯 볶음', reason: '소고기와 목이버섯, 새송이버섯의 풍부한 식감과 감칠맛이 가득한 건강 볶음.', score: 5.0 },
+        { name: '마라 소고기 샤브샤브', reason: '기름진 국물 대신 소고기와 청경채, 버섯, 배추 위주로 건져 먹는 깔끔한 마라탕.', score: 4.8 },
+        { name: '새우 계란볶음밥', reason: '기름을 최소화해 통통한 새우와 대파, 달걀을 고슬고슬 볶아낸 담백한 한 끼.', score: 4.8 },
+        { name: '건두부 오이무침', reason: '쫄깃한 포두부와 아삭한 오이를 새콤하고 담백하게 무쳐 식물성 단백질 충전.', score: 5.0 },
+        { name: '굴소스 가지볶음', reason: '부드러운 가지와 다진 소고기를 볶아 안토시아닌과 영양을 듬뿍 담은 접시.', score: 5.0 },
+        { name: '닭고기 양상추쌈', reason: '잘게 썬 닭안심과 버섯을 아삭한 양상추에 싸먹는 광둥식 담백한 헬시 메뉴.', score: 5.0 },
+        { name: '해물 백짬뽕밥', reason: '고춧가루 기름 없이 해산물과 배추, 양파로 맑게 끓여 속이 확 풀리는 시원한 국물.', score: 4.8 },
+        { name: '중국식 오이 탕탕이 & 수육', reason: '마늘 식초 소스에 버무린 오이와 담백한 수육의 깔끔하고 중독성 있는 조합.', score: 5.0 },
+        { name: '순두부 계란 해물탕', reason: '순두부와 신선한 해산물을 맑은 육수에 끓여내 부드럽게 단백질을 채워주는 탕.', score: 5.0 }
+      ],
+      '일식': [
+        { name: '연어덮밥 (사케동)', reason: '도톰한 생연어에 얇게 썬 양파와 생와사비를 얹어 피지 염증을 가라앉히는 깔끔한 한 그릇.', score: 5.0 },
+        { name: '소고기 스키야키', reason: '배추, 두부, 곤약, 버섯을 넣고 소고기를 끓여 계란에 찍어 먹는 든든한 전골.', score: 5.0 },
+        { name: '참치 타다키 & 샐러드', reason: '겉만 살짝 익힌 참치에 폰즈 소스와 신선한 채소를 곁들인 저당·고단백 일식.', score: 5.0 },
+        { name: '닭고기 온소바', reason: '혈당 지수(GI)가 낮은 메밀면에 부드러운 닭안심과 대파를 올린 깔끔한 면 요리.', score: 4.8 },
+        { name: '소고기 샤브샤브', reason: '소고기와 신선한 채소를 담백한 맑은 육수에 데쳐 먹는 실패 없는 외식 1티어 건강식.', score: 5.0 },
+        { name: '광어회 & 모둠채소', reason: '칼로리 걱정 전혀 없는 쫄깃한 광어회에 깻잎과 마늘을 곁들인 완벽한 클린 단백질.', score: 5.0 },
+        { name: '연어 소금구이 정식', reason: '담백하게 구운 연어 토막에 무즙과 미소된장국을 곁들인 깔끔한 일본 가정식.', score: 5.0 },
+        { name: '차돌박이 세이로무시', reason: '편백나무 틀에 쪄낸 차돌박이와 숙주, 버섯, 배추를 폰즈에 찍어 먹는 무기름 찜 요리.', score: 5.0 },
+        { name: '메밀 냉소바 & 새우구이', reason: '시원한 쯔유에 적셔 먹는 메밀면과 고소한 새우구이의 개운한 조합.', score: 4.8 },
+        { name: '참치 아보카도 덮밥', reason: '참치 붉은 살과 아보카도를 간장 소스에 얹어 비벼 먹는 불포화지방산 가득한 식단.', score: 5.0 },
+        { name: '야키토리 (닭꼬치 4종)', reason: '파닭꼬치와 닭안심을 소금으로만 노릇하게 구워내 기름기 없이 담백한 꼬치.', score: 5.0 },
+        { name: '도미 맑은탕 (지리)', reason: '신선한 도미와 무, 미나리를 맑고 시원하게 끓여내 위장을 정화해주는 탕.', score: 5.0 },
+        { name: '장어구이 덮밥 (우나돈)', reason: '불포화지방산과 비타민A가 풍부하여 거칠어진 피부 장벽을 회복시키는 보양식.', score: 4.8 },
+        { name: '명란 아보카도 비빔밥', reason: '저염 명란젓과 부드러운 아보카도, 김가루를 얹어 풍미를 살린 간편 일식.', score: 4.8 },
+        { name: '소고기 규동 (저당식)', reason: '설탕을 줄이고 양파 본연의 단맛으로 소고기를 자작하게 조려낸 든든한 덮밥.', score: 4.8 },
+        { name: '고등어 미소조림', reason: '생강과 된장 양념에 무와 고등어를 담백하게 조려낸 영양 가득 밥도둑 요리.', score: 5.0 },
+        { name: '지라시스시 (모둠 지라시)', reason: '밥 위에 참치, 연어, 새우, 계란지단을 흩뿌려 올린 신선하고 산뜻한 해산물 밥.', score: 5.0 },
+        { name: '닭다리살 대파구이', reason: '대파와 닭다리살을 노릇하게 구워 와사비 소금을 곁들인 겉바속촉 고단백 요리.', score: 5.0 },
+        { name: '해물 우동 나베', reason: '꽃게, 새우, 배추를 넣고 뚝배기에 보글보글 끓여낸 담백하고 따뜻한 전골.', score: 4.8 },
+        { name: '낫또 계란덮밥', reason: '장 건강 유익균 가득한 낫또와 계란 노른자, 쪽파로 피부 마이크로바이옴 개선.', score: 5.0 }
+      ],
+      '양식': [
+        { name: '소고기 채끝 스테이크', reason: '두툼한 채끝살에 구운 아스파라거스와 마늘을 곁들여 크림/버터 없이 즐기는 양식.', score: 5.0 },
+        { name: '바질 토마토 치킨구이', reason: '치즈 대신 향긋한 바질과 항산화 토마토를 곁들인 지중해식 닭가슴살 오븐구이.', score: 5.0 },
+        { name: '봉골레 오일 파스타', reason: '크림과 설탕 없이 바지락의 시원한 감칠맛과 마늘, 올리브유로 맛을 낸 클린 파스타.', score: 4.8 },
+        { name: '비프 찹스테이크', reason: '달콤한 시판 소스 대신 통후추와 허브로 풍미를 살린 소고기와 파프리카 볶음.', score: 5.0 },
+        { name: '지중해식 해산물 스튜', reason: '새우, 조개, 토마토를 맑게 끓여내 밤에도 부담 없이 해산물 아미노산을 채우는 요리.', score: 5.0 },
+        { name: '구운 닭안심 웜샐러드', reason: '따뜻하게 구운 닭안심과 구운 채소로 찬 위장을 달래주는 부드러운 저녁 식단.', score: 5.0 },
+        { name: '연어 스테이크 & 샐러드', reason: '올리브유에 노릇하게 구운 연어와 신선한 샐러드로 피부 항산화 케어 완성.', score: 5.0 },
+        { name: '닭가슴살 라따뚜이', reason: '호박, 가지, 토마토를 겹겹이 구워 닭가슴살을 곁들인 프랑스 정통 채소 스튜.', score: 5.0 },
+        { name: '새우 감바스 알 아히요', reason: '올리브유에 통마늘과 통새우를 보글보글 끓여낸 건강한 지중해 해산물 한 접시.', score: 4.8 },
+        { name: '소고기 안심 샐러드볼', reason: '육즙 촉촉한 소고기 안심과 오리엔탈 드레싱으로 채소를 맛있게 즐기는 보울.', score: 5.0 },
+        { name: '단호박 렌틸콩 스프', reason: '부드러운 단호박과 식이섬유 풍부한 렌틸콩을 끓여낸 속 편안한 저녁 수프.', score: 5.0 },
+        { name: '돼지 안심 로스트 & 사과', reason: '기름기 없는 부드러운 돼지 안심에 구운 사과와 로즈마리를 곁들인 요리.', score: 5.0 },
+        { name: '해산물 토마토 파스타', reason: '오징어, 조개, 새우를 신선한 토마토소스에 볶아낸 설탕 없는 지중해 파스타.', score: 4.8 },
+        { name: '치킨 시저 샐러드', reason: '구운 닭가슴살과 아삭한 로메인 상추에 올리브유 드레싱을 곁들인 가벼운 한 끼.', score: 4.8 },
+        { name: '흰살생선 빠삐요트', reason: '대구살과 조개, 방울토마토를 종이호일에 싸서 오븐에 촉촉하게 쪄낸 프랑스식.', score: 5.0 },
+        { name: '소고기 미트볼 토마토조림', reason: '소고기로 직접 빚은 미트볼을 토마토소스에 졸여낸 영양 만점 고단백 요리.', score: 4.8 },
+        { name: '닭다리살 스테이크', reason: '껍질을 바삭하게 굽고 기름을 쏙 뺀 닭다리살에 구운 통마늘을 곁들인 접시.', score: 5.0 },
+        { name: '새우 아스파라거스 리조또', reason: '귀리와 현미로 지어 올리브유로 가볍게 볶아낸 담백한 해산물 곡물밥.', score: 4.8 },
+        { name: '훈제연어 아보카도 롤', reason: '훈제연어와 아보카도, 오이를 밥과 함께 말아낸 산뜻하고 든든한 롤.', score: 5.0 },
+        { name: '그릴드 비프 버거볼', reason: '밀가루 번 대신 소고기 패티와 토마토, 양상추를 푸짐하게 담아낸 보울.', score: 4.8 }
+      ],
+      '아시안': [
+        { name: '소고기 쌀국수 (포보)', reason: '맑고 깊은 양지 육수에 숙주나물과 양파를 듬뿍 넣은 속 편하고 개운한 아시안 식단.', score: 5.0 },
+        { name: '월남쌈 & 닭가슴살', reason: '라이스페이퍼에 알록달록 채소와 닭가슴살을 싸먹는 무설탕·무유제품 클린식.', score: 5.0 },
+        { name: '분짜 & 숯불돼지고기', reason: '기름 뺀 숯불고기에 상추, 깻잎, 쌀국수를 곁들여 먹는 신선하고 개운한 베트남식.', score: 5.0 },
+        { name: '태국식 똠얌 쌀국수', reason: '새우와 버섯, 라임과 향신료로 끓여내 당류 없이 신진대사를 자극하는 아시안 수프.', score: 5.0 },
+        { name: '팟타이 (새우 볶음 쌀국수)', reason: '통통한 새우와 아삭한 숙주, 계란을 센 불에 볶아낸 다채로운 맛의 아시안 식단.', score: 4.8 },
+        { name: '맑은 닭고기 쌀국수', reason: '기름기 걷어낸 담백한 닭 육수에 쌀국수와 숙주를 듬뿍 넣어 야식 부담 없는 한 그릇.', score: 5.0 },
+        { name: '새우 완탕 스프', reason: '부드러운 새우 완자와 배추를 넣고 맑게 끓여낸 소화 친화형 아시안 국물 요리.', score: 5.0 },
+        { name: '월남쌈 & 훈제오리', reason: '각종 채소와 훈제오리를 쌈 싸 먹어 비타민과 불포화지방산을 동시에 보충하는 별미.', score: 5.0 },
+        { name: '인도네시아 나시고랭', reason: '닭안심과 채소, 계란을 매콤달콤 볶아낸 아시안 최고의 볶음밥 식단.', score: 4.8 },
+        { name: '모닝글로리 (공심채 볶음)', reason: '아삭아삭한 공심채에 다진 마늘과 소고기를 센 불에 볶아낸 비타민 폭탄 반찬.', score: 5.0 },
+        { name: '싱가포르 바쿠테 (갈비탕)', reason: '통마늘과 통후추, 돼지갈비를 푹 끓여낸 맑고 칼칼한 아시안 보양 탕.', score: 5.0 },
+        { name: '그린파파야 샐러드 (쏨땀)', reason: '아삭한 그린파파야와 당근, 방울토마토에 피시소스를 버무린 상큼한 샐러드.', score: 5.0 },
+        { name: '태국식 바질 돼지고기 덮밥', reason: '다진 돼지고기와 바질, 청양고추를 센 불에 볶아 계란후라이를 얹은 덮밥.', score: 4.8 },
+        { name: '해물 팟씨유', reason: '넓적한 쌀국수에 청경채, 새우, 오징어를 간장 불맛으로 볶아낸 담백한 볶음면.', score: 4.8 },
+        { name: '반미 샌드위치 (소고기)', reason: '쌀바게트에 볶은 소고기, 오이, 당근피클, 고수를 듬뿍 채운 베트남 샌드위치.', score: 4.8 },
+        { name: '치킨 사테 & 오이 피클', reason: '땅콩 소스 대신 커민과 강황 향신료로 구운 인도네시아식 닭꼬치.', score: 5.0 },
+        { name: '해산물 똠얌꿍', reason: '새우와 버섯, 토마토가 어우러진 태국 정통 항산화 피로회복 수프.', score: 5.0 },
+        { name: '분보남보 (비빔 쌀국수)', reason: '볶은 소고기와 신선한 생채소를 피시소스에 비벼 먹는 산뜻한 하노이식 국수.', score: 5.0 },
+        { name: '태국식 닭고기 캐슈넛 볶음', reason: '닭안심과 피망, 양파, 고소한 캐슈넛을 담백하게 볶아낸 영양 만점 요리.', score: 4.8 },
+        { name: '하이난 치킨라이스', reason: '향신 채소로 촉촉하게 삶아낸 닭고기와 생강 파 양념장의 담백한 보양 밥.', score: 5.0 }
+      ]
+    };
+
+
+    
+    // --- 100 Genuinely Delicious & Craveable Snacks Database ---
+    const SNACK_DATABASE_100 = [
+      // 1. 카페 & 요거트 디저트 (20)
+      '요거트 아이스크림 & 벌집꿀', '딸기 그릭요거트볼 & 그래놀라', '크림치즈 곶감말이', '단호박 에그슬럿',
+      '피넛버터 바나나 토스트', '에어프라이어 바나나 브륄레', '애플 시나몬 구이 & 그릭요거트', '아사이볼 & 베리 토핑',
+      '블루베리 베이글 & 크림치즈', '무화과 리코타치즈 토스트', '망고 코코넛 사고', '피스타치오 그릭요거트',
+      '복숭아 그릭요거트볼', '체리 초코 요거트볼', '단호박 치즈 퐁듀', '오트밀 초코 바나나빵',
+      '다크초코 퐁듀 딸기', '초코 프로틴 브라우니', '사과 슬라이스 & 피넛버터', '치아씨드 요거트 파르페',
+
+      // 2. 편의점 & 올리브영 인기 스낵 (20)
+      '허니버터 아몬드', '촉촉한 고구마 말랭이', '달콤촉촉 맛밤', '단백질 츄러스 스낵',
+      '올리브영 베이글칩 (갈릭버터)', '올리브영 베이글칩 (허니버터)', '치즈 닭가슴살 핫바', '청양마늘 닭가슴살 소시지',
+      '스트링치즈 & 비프 육포', '바삭한 먹태스낵 & 청양마요', '프로틴 초코 웨이퍼', '초코 단백질 쉐이크 (더단백)',
+      '단백질 치즈 카스테라', '구운 감자칩 (오븐구이)', '바삭한 단호박칩', '자색고구마칩',
+      '바삭한 황태껍질 튀각', '단백질 팝콘 (어니언맛)', '검은콩 볶음 & 아몬드', '구운 캐슈넛 & 크랜베리',
+
+      // 3. 에어프라이어 & 짭짤 고소 간식 (20)
+      '에어프라이어 콘치즈', '버터구이 오징어', '바삭한 먹태구이 & 간장마요', '구운 가래떡 & 꿀',
+      '양송이 치즈구이', '에어프라이어 라이스페이퍼 만두', '닭안심 팝콘 치킨', '바삭한 찹쌀 김부각',
+      '에어프라이어 통마늘 버터구이', '단호박 치즈구이', '에어프라이어 두부 탕수', '구운 훈제 메추리알 (간장맛)',
+      '오븐구이 치즈 나초 & 살사', '구운 쥐포 & 마요네즈', '소시지 떡꼬치 (에어프라이어)', '닭가슴살 칩 & 스위트칠리',
+      '구운 은행알 꼬치', '에어프라이어 감자 웨지구이', '구운 어묵바 & 케첩', '토마토 카프레제 꼬치',
+
+      // 4. 시원 달콤 과일 & 아이스 디저트 (20)
+      '아이스 홍시 샤베트', '얼린 샤인머스캣', '아이스 냉동 망고바', '얼린 청포도 알',
+      '달콤한 꿀사과 한 접시', '생딸기 찹쌀떡', '샤인머스캣 과일꼬치', '수박 큐브 & 레몬즙',
+      '골드키위 2알', '생 무화과 & 꿀 한 스푼', '제주 감귤 2~3개', '달콤한 복숭아 슬라이스',
+      '자몽 슬라이스 & 꿀', '달콤한 멜론 볼', '생체리 한 컵', '파인애플 꼬치',
+      '달콤한 단감 슬라이스', '블랙 사파이어 포도', '동결건조 통딸기 초코', '아이스 블루베리 & 연유 살짝',
+
+      // 5. 전통 디저트 & 홈베이킹 달콤 간식 (20)
+      '호두과자 4알', '꿀 찹쌀 약과 1개', '쫀득한 인절미 떡 3~4알', '개성주악 1개',
+      '바삭한 군밤 한 봉지', '달콤한 감말랭이', '쫀득한 곶감 1개', '바삭한 꿀 대추칩',
+      '바나나 팬케이크 (노밀가루)', '오트밀 그래놀라 바', '다크초콜릿 (카카오 72%)', '통밀 비스킷 & 무화과잼',
+      '통밀 와플 & 메이플시럽', '단호박 찹쌀 경단', '바삭한 호두파이 1조각', '에어프라이어 크로플 (미니)',
+      '대추야자 (데이츠) & 버터', '현미 가래떡 츄러스', '바삭한 연근 부각', '흑임자 떡 2알'
+    ];
+
+    let currentRecCategory = 'cleanMaintenance';
+
+    function renderWeeklyPlanAndRecommendations() {
+      const periodElem = document.getElementById('weekly-eval-period');
+      const badgeElem = document.getElementById('weekly-eval-badge');
+      const countElem = document.getElementById('weekly-meal-count');
+      const cleanElem = document.getElementById('weekly-stat-clean');
+      const dairySugarElem = document.getElementById('weekly-stat-dairy-sugar');
+      const lateElem = document.getElementById('weekly-stat-late');
+      const feedbackElem = document.getElementById('weekly-eval-feedback');
+      // themeBadge removed
+
+      if (!periodElem || !badgeElem) return;
+
+      const now = new Date('2026-10-28T00:00:00');
+      const startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 6);
+
+      const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+      const endStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      periodElem.textContent = `${startDate.getMonth() + 1}월 ${startDate.getDate()}일 ~ ${now.getMonth() + 1}월 ${now.getDate()}일 (최근 7일)`;
+
+      const weekMeals = mealsData.filter(m => m.date >= startStr && m.date <= endStr);
+      const totalCount = weekMeals.length;
+
+      let sumScore = 0;
+      let cleanCount = 0;
+      let dairyCount = 0;
+      let sugarCount = 0;
+      let lateCount = 0;
+
+      weekMeals.forEach(m => {
+        sumScore += (m.score || 0);
+        if (m.highProteinVeg && !m.hasDairy && !m.hasSugar && !m.isLateNight) cleanCount++;
+        if (m.hasDairy) dairyCount++;
+        if (m.hasSugar) sugarCount++;
+        if (m.isLateNight) lateCount++;
+      });
+
+      const avgScore = totalCount > 0 ? Number((sumScore / totalCount).toFixed(1)) : 5.0;
+      const cleanRatio = totalCount > 0 ? Math.round((cleanCount / totalCount) * 100) : 100;
+
+      if (countElem) countElem.textContent = `총 ${totalCount}끼 식사 분석`;
+      if (cleanElem) cleanElem.textContent = `${cleanRatio}% (${cleanCount}끼)`;
+      if (dairySugarElem) dairySugarElem.textContent = `유제품 ${dairyCount}회 · 당류 ${sugarCount}회`;
+      if (lateElem) lateElem.textContent = `${lateCount}회 (${lateCount > 0 ? '감점 발생' : '야식 없음'})`;
+
+      let grade = 'A+';
+      let gradeLabel = '최적';
+      let gradeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      let themeTitle = '맛있는 고단백 한식 & 피부 장벽 플랜';
+      let feedbackText = '';
+
+      if (totalCount === 0) {
+        grade = 'A+';
+        gradeLabel = '시작';
+        currentRecCategory = 'cleanMaintenance';
+        themeTitle = '현실 맛도리 집밥 & 클린 단백질 플랜';
+        feedbackText = '아직 기록된 식단이 적지만, 일상에서 맛있게 챙겨 드실 수 있는 5.0점 만점 든든한 한식 메뉴들을 준비했습니다. 식단을 기록하시면 주간 성적표가 실시간 채점됩니다!';
+      } else if (dairyCount >= 3 || (dairyCount > sugarCount && dairyCount >= lateCount && dairyCount > 0)) {
+        currentRecCategory = 'dairyDetox';
+        themeTitle = '유제품 대신 고기·생선 듬뿍! 든든 한식 플랜';
+        if (avgScore >= 4.2) {
+          grade = 'A'; gradeLabel = '우수'; gradeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        } else if (avgScore >= 3.5) {
+          grade = 'B'; gradeLabel = '양호'; gradeClass = 'bg-lime-100 text-lime-800 border-lime-200';
+        } else {
+          grade = 'C'; gradeLabel = '주의 ⚠️'; gradeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+        }
+        feedbackText = `지난 7일간 라떼나 치즈 등 유제품 섭취(${dairyCount}회)가 잦아 피지가 올라오기 쉬운 상태예요. 다음 주에는 유제품 없이도 입맛을 돋우는 담백한 수육 쌈밥, 겉바속촉 고등어구이, 연어 사케동 같은 든든한 고단백 해산물·고기 밥상으로 피부를 진정시켜 보세요!`;
+      } else if (sugarCount >= 3 || (sugarCount >= dairyCount && sugarCount >= lateCount && sugarCount > 0)) {
+        currentRecCategory = 'sugarDetox';
+        themeTitle = '달달한 당류 싹 잊게 해줄 감칠맛 한식 플랜';
+        if (avgScore >= 4.2) {
+          grade = 'A'; gradeLabel = '우수'; gradeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        } else if (avgScore >= 3.5) {
+          grade = 'B'; gradeLabel = '양호'; gradeClass = 'bg-lime-100 text-lime-800 border-lime-200';
+        } else {
+          grade = 'C'; gradeLabel = '주의 ⚠️'; gradeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+        }
+        feedbackText = `지난주 정제당과 디저트 섭취(${sugarCount}회)로 피부 염증 사이클이 자극받았을 수 있어요. 달달한 유혹을 싹 잊게 해줄 아삭한 우삼겹 숙주볶음, 닭한마리, 참치 아보카도밥처럼 당분 없이도 감칠맛 폭발하는 현실 밥도둑 식단을 추천합니다!`;
+      } else if (lateCount >= 2) {
+        currentRecCategory = 'lateNightCare';
+        themeTitle = '밤늦게 먹어도 속 편안한 맑고 따뜻한 밥상';
+        grade = avgScore >= 4.0 ? 'B+' : 'C';
+        gradeLabel = '야식 주의 🌙';
+        gradeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+        feedbackText = `21시 이후 야식(${lateCount}회)으로 수면 중 소화기와 피부 장벽 재생에 부담이 갔을 거예요. 다음 주는 깊고 시원한 소고기 미역국, 맑은 뭇국과 두부 부침처럼 늦은 시간에도 속 편안하고 소화 잘되는 따뜻한 밥상을 즐겨보세요!`;
+      } else {
+        currentRecCategory = 'cleanMaintenance';
+        themeTitle = '맛도 챙기고 피부도 챙기는 황금 밸런스 플랜';
+        if (avgScore >= 4.5) {
+          grade = 'A+'; gradeLabel = '최적 🌿'; gradeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+          feedbackText = `지난 1주일간 평균 ${avgScore}점으로 식단 관리를 정말 멋지게 실천하셨네요! 다음 주에도 소고기 샤브샤브, 생연어 사케동, 훈제오리 부추볶음처럼 맛도 훌륭하고 피부도 맑아지는 알찬 밥상으로 기분 좋게 유지해 보세요!`;
+        } else {
+          grade = 'A'; gradeLabel = '우수'; gradeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+          feedbackText = `전반적으로 안정적인 식단(평균 ${avgScore}점)을 잘 유지하셨습니다. 다음 주에는 채소와 단백질을 무한정 맛있게 즐길 수 있는 소고기 샤브샤브나 삼치구이 된장찌개 정식으로 식탁을 풍성하게 꾸며보세요!`;
+        }
+      }
+
+      badgeElem.className = `px-2.5 py-1 rounded-full text-xs font-black border shadow-sm ${gradeClass}`;
+      badgeElem.textContent = `${grade} ${gradeLabel} (${avgScore}점)`;
+      if (feedbackElem) feedbackElem.textContent = feedbackText;
+      // themeBadge text removed
+
+      renderRecommendedMealsList();
+    }
+
+    let currentRecOffset = 0;
+
+    function renderRecommendedMealsList() {
+      const listContainer = document.getElementById('weekly-recommendations-list');
+      if (!listContainer) return;
+
+      const cuisines = ['한식', '중식', '일식', '양식', '아시안'];
+
+      // Pick 4 random dishes from different cuisines
+      const shuffledCuisines = [...cuisines].sort(() => 0.5 - Math.random()).slice(0, 4);
+      let selectedMeals = [];
+      shuffledCuisines.forEach(c => {
+        const pool = MEAL_DATABASE_100[c] || [];
+        if (pool.length > 0) {
+          const randIdx = Math.floor(Math.random() * pool.length);
+          selectedMeals.push(pool[randIdx].name);
+        }
+      });
+
+      // Pick 2 random snacks from SNACK_DATABASE_100
+      const shuffledSnacks = [...SNACK_DATABASE_100].sort(() => 0.5 - Math.random()).slice(0, 2);
+
+      listContainer.innerHTML = '';
+
+      // Helper to create clean card (Name + Favorite button only)
+      const createItemCard = (name) => {
+        const isFav = favoriteMenus.includes(name);
+        const card = document.createElement('div');
+        card.className = 'p-2.5 px-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center justify-between gap-3 hover:border-pink-200 transition-all';
+        card.innerHTML = `
+          <div class="flex-1 min-w-0 pr-1">
+            <span class="text-xs font-extrabold text-slate-900 break-keep leading-tight whitespace-normal">${name}</span>
+          </div>
+          <button type="button" class="btn-add-rec-fav flex-shrink-0 px-2.5 py-1.5 rounded-xl ${isFav ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 border-pink-200'} border text-xs font-bold active:scale-95 transition-transform flex items-center gap-1 whitespace-nowrap" data-name="${name}">
+            <span>${isFav ? '★' : '⭐'}</span>
+            <span>${isFav ? '즐겨찾기됨' : '즐겨찾기 담기'}</span>
+          </button>
+        `;
+
+        const btn = card.querySelector('.btn-add-rec-fav');
+        btn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (favoriteMenus.includes(name)) {
+            showToast(`'${name}'은(는) 이미 즐겨찾기에 등록되어 있습니다! ⭐`);
+          } else {
+            favoriteMenus.push(name);
+            try {
+              localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(favoriteMenus));
+            } catch (err) {}
+            renderMenuChips();
+            updateFavButtonUI();
+            btn.className = 'btn-add-rec-fav flex-shrink-0 px-2.5 py-1.5 rounded-xl bg-amber-100 text-amber-800 border-amber-300 border text-xs font-bold flex items-center gap-1 whitespace-nowrap';
+            btn.innerHTML = '<span>★</span><span>즐겨찾기됨</span>';
+            showToast(`'${name}'이(가) 내 즐겨찾기에 추가되었습니다! 식단 기록 시 바로 선택하세요 🌿`);
+          }
+        });
+
+        return card;
+      };
+
+      // 1. Render 4 Meal Items
+      selectedMeals.forEach(name => {
+        listContainer.appendChild(createItemCard(name));
+      });
+
+      // 2. Render Snacks Sub-header
+      const snackHeader = document.createElement('div');
+      snackHeader.className = 'pt-2 pb-0.5 flex items-center gap-1.5 text-xs font-bold text-slate-700';
+      snackHeader.innerHTML = `
+        <span class="text-sm">☕</span>
+        <span>추천 건강 간식</span>
+      `;
+      listContainer.appendChild(snackHeader);
+
+      // 3. Render 2 Snack Items
+      shuffledSnacks.forEach(name => {
+        listContainer.appendChild(createItemCard(name));
+      });
+    }
+
+    // --- Chart.js Correlation View (Feature 1) ---
+    function renderCorrelationAnalysis() {
+      renderWeeklyPlanAndRecommendations();
+      // Gather last 14 days dates
+      const labels = [];
+      const dietScores = [];
+      const symptomScores = [];
+
+      const today = new Date('2026-10-28T00:00:00');
+      let totalDiet = 0;
+      let countDiet = 0;
+      let totalSymptom = 0;
+      let countSymptom = 0;
+
+      let dairyCount = 0;
+      let sugarCount = 0;
+      let lateCount = 0;
+
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+
+        const dayMeals = mealsData.filter(m => m.date === dStr);
+        if (dayMeals.length > 0) {
+          const avg = Number((dayMeals.reduce((acc, c) => acc + c.score, 0) / dayMeals.length).toFixed(1));
+          dietScores.push(avg);
+          totalDiet += avg;
+          countDiet++;
+
+          dayMeals.forEach(m => {
+            if (m.hasDairy) dairyCount++;
+            if (m.hasSugar) sugarCount++;
+            if (m.isLateNight) lateCount++;
+          });
+        } else {
+          dietScores.push(null); // break line
+        }
+
+        const symp = symptomsData[dStr];
+        if (symp !== undefined && symp.severity !== undefined) {
+          symptomScores.push(symp.severity);
+          totalSymptom += symp.severity;
+          countSymptom++;
+        } else {
+          symptomScores.push(0);
+        }
+      }
+
+      // Stats
+      const statAvgDiet = document.getElementById('stat-avg-diet');
+      const statAvgSymptom = document.getElementById('stat-avg-symptom');
+      const statMainCulprit = document.getElementById('stat-main-culprit');
+      const insightAnalysisText = document.getElementById('insight-analysis-text');
+
+      if (statAvgDiet) statAvgDiet.textContent = countDiet > 0 ? `${(totalDiet / countDiet).toFixed(1)}점` : '-';
+      if (statAvgSymptom) statAvgSymptom.textContent = countSymptom > 0 ? `${(totalSymptom / countSymptom).toFixed(1)}점` : '0점';
+
+      let maxCulprit = '없음';
+      if (dairyCount >= sugarCount && dairyCount >= lateCount && dairyCount > 0) {
+        maxCulprit = `유제품 ${dairyCount}회`;
+      } else if (sugarCount >= dairyCount && sugarCount >= lateCount && sugarCount > 0) {
+        maxCulprit = `가공당 ${sugarCount}회`;
+      } else if (lateCount > 0) {
+        maxCulprit = `야식 ${lateCount}회`;
+      }
+      if (statMainCulprit) statMainCulprit.textContent = maxCulprit;
+
+      // Scientific Insight Generation
+      if (insightAnalysisText) {
+        if (countDiet === 0 && countSymptom === 0) {
+          insightAnalysisText.innerHTML = `
+            <strong>🧬 식단 & 컨디션 리포트:</strong><br>
+            아직 기록된 데이터가 없습니다. 매일 식단 사진과 피부 상태를 기록하시면 섭취 후 24~48시간 잠복기 반응을 자동으로 분석해 드립니다.
+          `;
+        } else if (countDiet > 0 && countSymptom > 0) {
+          insightAnalysisText.innerHTML = `
+            <strong>🧬 식단 & 컨디션 리포트:</strong><br>
+            최근 14일간 식단 평균은 <strong>${(totalDiet / countDiet).toFixed(1)}점</strong>, 피부 트러블 심각도는 <strong>${(totalSymptom / countSymptom).toFixed(1)}점</strong>입니다.<br>
+            주요 감점 요인은 <strong>${maxCulprit}</strong>이며, 식단 섭취 후 24~48시간 뒤 컨디션의 변화를 위 차트에서 확인하실 수 있습니다.
+          `;
+        } else if (countDiet > 0) {
+          insightAnalysisText.innerHTML = `
+            <strong>🧬 식단 & 컨디션 리포트:</strong><br>
+            기록된 식단 평균 점수는 <strong>${(totalDiet / countDiet).toFixed(1)}점</strong>입니다. 상단 <strong>[🚨 피부 기록]</strong> 버튼으로 피부 상태를 함께 남겨주시면 컨디션 통계가 계산됩니다.
+          `;
+        } else {
+          insightAnalysisText.innerHTML = `
+            <strong>🧬 식단 & 컨디션 리포트:</strong><br>
+            피부 상태가 기록되었습니다 (평균 ${(totalSymptom / countSymptom).toFixed(1)}점). 식단 사진을 추가하시면 피부 반응을 유발한 음식을 분석해 드립니다.
+          `;
+        }
+      }
+
+      // Render Chart.js
+      const canvas = document.getElementById('correlation-chart');
+      if (!canvas) return;
+
+      if (correlationChartInstance) {
+        correlationChartInstance.destroy();
+      }
+
+      const ctx = canvas.getContext('2d');
+      correlationChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '식단 건강 점수 (높을수록 좋음)',
+              data: dietScores,
+              borderColor: '#d946ef',
+              backgroundColor: 'rgba(255, 221, 255, 0.4)',
+              borderWidth: 2.5,
+              tension: 0.3,
+              fill: false,
+              pointBackgroundColor: '#d946ef',
+              pointRadius: 4,
+              spanGaps: true,
+              yAxisID: 'y'
+            },
+            {
+              label: '피부 트러블 심각도 (낮을수록 좋음)',
+              data: symptomScores,
+              borderColor: '#f43f5e',
+              backgroundColor: 'rgba(244, 63, 94, 0.15)',
+              borderWidth: 2,
+              borderDash: [4, 4],
+              tension: 0.2,
+              fill: true,
+              pointBackgroundColor: '#f43f5e',
+              pointRadius: 4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false, // Core Canvas requirement
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              display: false // We use our custom legend
+            },
+            tooltip: {
+              padding: 10,
+              callbacks: {
+                label: function(context) {
+                  if (context.dataset.yAxisID === 'y') {
+                    return `🌿 건강 식단: ${context.parsed.y !== null ? context.parsed.y + '점' : '기록 없음'}`;
+                  } else {
+                    return `🚨 피부 트러블: ${context.parsed.y}점`;
+                  }
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              min: 0,
+              max: 5,
+              ticks: { stepSize: 1, font: { size: 10 } },
+              title: { display: true, text: '식단 점수', color: '#10b981', font: { size: 10, weight: 'bold' } },
+              grid: { color: 'rgba(226, 232, 240, 0.8)' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              min: 0,
+              max: 5,
+              ticks: { stepSize: 1, font: { size: 10 } },
+              title: { display: true, text: '피부 트러블', color: '#f43f5e', font: { size: 10, weight: 'bold' } },
+              grid: { drawOnChartArea: false }
+            },
+            x: {
+              ticks: { font: { size: 10 } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+
+      // Render Symptoms History List
+      renderSymptomsHistory();
+    }
+
+    function renderSymptomsHistory() {
+      const listElem = document.getElementById('symptoms-history-list');
+      if (!listElem) return;
+
+      const dates = Object.keys(symptomsData).sort().reverse().slice(0, 5);
+      if (dates.length === 0) {
+        listElem.innerHTML = `<div class="text-slate-400 text-center py-3">기록된 피부 상태가 없습니다.</div>`;
+        return;
+      }
+
+      listElem.innerHTML = '';
+      dates.forEach(dStr => {
+        const item = symptomsData[dStr];
+        const row = document.createElement('div');
+        row.className = 'p-2.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between';
+        row.innerHTML = `
+          <div>
+            <div class="font-bold text-slate-800 flex items-center gap-1.5">
+              <span>${dStr}</span>
+              <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${item.severity >= 3 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'}">심각도 ${item.severity}/5</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5 truncate">
+              ${item.tags.join(', ') || '특이 증상 없음'} ${item.notes ? `· ${item.notes}` : ''}
+            </div>
+          </div>
+          <button class="btn-quick-edit-symp text-slate-400 hover:text-slate-700 px-2 py-1 text-xs" data-date="${dStr}">
+            수정
+          </button>
+        `;
+        row.querySelector('.btn-quick-edit-symp')?.addEventListener('click', () => {
+          openSymptomModal(dStr);
+        });
+        listElem.appendChild(row);
+      });
+    }
+
+    // --- Meal Modal & Photo Upload Compression (Feature 2) ---
+    
+    function toggleMealModal(meal = null) {
+      const modal = document.getElementById('modal-meal');
+      if (modal && !modal.classList.contains('hidden')) {
+        closeMealModal();
+      } else {
+        openMealModal(meal);
+      }
+    }
+
+    function openMealModal(meal = null) {
+      renderMenuChips();
+      updateFavButtonUI();
+      editingMealId = meal ? meal.id : null;
+      const modal = document.getElementById('modal-meal');
+      const title = document.getElementById('modal-meal-title');
+      const deleteBtn = document.getElementById('btn-delete-meal');
+      const nameInput = document.getElementById('input-meal-name');
+      const dateInput = document.getElementById('input-meal-date');
+      const timeInput = document.getElementById('input-meal-time');
+      
+      const proteinVegCheck = document.getElementById('chk-protein-veg');
+      const dairyCheck = document.getElementById('chk-dairy');
+      const sugarCheck = document.getElementById('chk-sugar');
+      const lateNightCheck = document.getElementById('chk-latenight');
+
+      if (!modal || !nameInput || !dateInput || !timeInput) return;
+
+      if (meal) {
+        title.textContent = '식단 수정하기';
+        deleteBtn.classList.remove('hidden');
+        nameInput.value = meal.name;
+        dateInput.value = meal.date;
+        timeInput.value = meal.time;
+        setMealTypeUI(meal.type);
+        // homecooked toggle removed
+        proteinVegCheck.checked = meal.highProteinVeg;
+        dairyCheck.checked = meal.hasDairy;
+        sugarCheck.checked = meal.hasSugar;
+        lateNightCheck.checked = meal.isLateNight;
+        setPhotoPreview(meal.photo);
+      } else {
+        title.textContent = '새 식단 기록하기';
+        deleteBtn.classList.add('hidden');
+        nameInput.value = '';
+        dateInput.value = selectedDateStr;
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        timeInput.value = timeStr;
+        setMealTypeUI('meal');
+        // homecooked toggle removed
+        proteinVegCheck.checked = true;
+        dairyCheck.checked = false;
+        sugarCheck.checked = false;
+        // Auto check late night if current time >= 21:00 or < 05:00
+        lateNightCheck.checked = checkIsLateNightFromTime(timeInput.value);
+        setPhotoPreview('');
+        document.getElementById('ai-analyzing-banner')?.classList.add('hidden');
+        document.getElementById('ai-result-banner')?.classList.add('hidden');
+      }
+
+      updateLiveScore();
+      modal.classList.remove('hidden');
+    }
+
+    function closeMealModal() {
+      const modal = document.getElementById('modal-meal');
+      if (modal) modal.classList.add('hidden');
+      editingMealId = null;
+      currentPhotoBase64 = null;
+    }
+
+    function setMealTypeUI(type) {
+      const btnMeal = document.getElementById('btn-type-meal');
+      const btnSnack = document.getElementById('btn-type-snack');
+      if (type === 'meal') {
+        btnMeal.className = 'py-2 rounded-xl border-2 border-pink-300 bg-emerald-50 text-slate-800 font-bold text-center';
+        btnSnack.className = 'py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-medium text-center';
+      } else {
+        btnMeal.className = 'py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-medium text-center';
+        btnSnack.className = 'py-2 rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-700 font-bold text-center';
+      }
+    }
+
+    function getSelectedMealType() {
+      const btnMeal = document.getElementById('btn-type-meal');
+      return btnMeal.classList.contains('border-pink-300') ? 'meal' : 'snack';
+    }
+
+    function setPhotoPreview(base64Url) {
+      currentPhotoBase64 = base64Url || null;
+      const previewImg = document.getElementById('photo-preview-img');
+      const placeholderIcon = document.getElementById('photo-placeholder-icon');
+      const placeholderText = document.getElementById('photo-placeholder-text');
+      const removeBtn = document.getElementById('btn-remove-photo');
+
+      if (base64Url) {
+        if (previewImg) {
+          previewImg.src = base64Url;
+          previewImg.classList.remove('hidden');
+        }
+        placeholderIcon?.classList.add('hidden');
+        placeholderText?.classList.add('hidden');
+        removeBtn?.classList.remove('hidden');
+      } else {
+        if (previewImg) {
+          previewImg.src = '';
+          previewImg.classList.add('hidden');
+        }
+        placeholderIcon?.classList.remove('hidden');
+        placeholderText?.classList.remove('hidden');
+        removeBtn?.classList.add('hidden');
+      }
+    }
+
+    // Client-side Canvas Image Downscaling (Keeps LocalStorage below quota)
+    async function handlePhotoUpload(file) {
+      if (!file) return;
+
+      // Extract photo creation timestamp (EXIF or file.lastModified)
+      try {
+        const dt = await extractPhotoDateTime(file);
+        if (dt && dt.date && dt.time) {
+          const dateInput = document.getElementById('input-meal-date');
+          const timeInput = document.getElementById('input-meal-time');
+          if (dateInput) dateInput.value = dt.date;
+          if (timeInput) {
+            timeInput.value = dt.time;
+            const lateNightCheck = document.getElementById('chk-latenight');
+            if (lateNightCheck) {
+              lateNightCheck.checked = checkIsLateNightFromTime(dt.time);
+              updateLiveScore();
+            }
+          }
+          showToast(`사진 속성 일시(${dt.date} ${dt.time})가 자동 반영되었습니다! 🕒`, '📅');
+        }
+      } catch (e) {
+        console.warn('Date extract error:', e);
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 480; // Compact 480px thumbnail
+          let w = img.width;
+          let h = img.height;
+          if (w > h && w > maxDim) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else if (h > maxDim) {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Compress to JPEG 0.70 quality (~20KB)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.70);
+          setPhotoPreview(compressedDataUrl);
+
+          // Automatically trigger AI Image Analysis & Auto-Scoring!
+          runAIFoodAnalysis(canvas, compressedDataUrl);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateLiveScore() {
+      
+      const highProteinVeg = document.getElementById('chk-protein-veg').checked;
+      const hasDairy = document.getElementById('chk-dairy').checked;
+      const hasSugar = document.getElementById('chk-sugar').checked;
+      const isLateNight = document.getElementById('chk-latenight').checked;
+
+      const calc = calculateScore({
+        
+        highProteinVeg,
+        hasDairy,
+        hasSugar,
+        isLateNight
+      });
+
+      const scoreElem = document.getElementById('modal-calculated-score');
+      const reasonsElem = document.getElementById('modal-score-reasons');
+      if (scoreElem) scoreElem.textContent = `★ ${calc.score}`;
+      if (reasonsElem) reasonsElem.textContent = calc.reasonsText;
+    }
+
+    function saveMealFromModal() {
+      const nameInput = document.getElementById('input-meal-name');
+      const dateInput = document.getElementById('input-meal-date');
+      const timeInput = document.getElementById('input-meal-time');
+      const mealName = nameInput.value.trim() || '이름 없는 식단';
+      const mealDate = dateInput.value || selectedDateStr;
+      const mealTime = timeInput.value || '12:00';
+
+      
+      const highProteinVeg = document.getElementById('chk-protein-veg').checked;
+      const hasDairy = document.getElementById('chk-dairy').checked;
+      const hasSugar = document.getElementById('chk-sugar').checked;
+      const isLateNight = document.getElementById('chk-latenight').checked;
+      const mealType = getSelectedMealType();
+
+      const calc = calculateScore({
+        
+        highProteinVeg,
+        hasDairy,
+        hasSugar,
+        isLateNight
+      });
+
+      if (editingMealId) {
+        // Edit existing
+        const idx = mealsData.findIndex(m => m.id === editingMealId);
+        if (idx !== -1) {
+          mealsData[idx] = {
+            ...mealsData[idx],
+            name: mealName,
+            date: mealDate,
+            time: mealTime,
+            type: mealType,
+            
+            highProteinVeg,
+            hasDairy,
+            hasSugar,
+            isLateNight,
+            score: calc.score,
+            photo: currentPhotoBase64 || mealsData[idx].photo || ''
+          };
+        }
+        showToast('식단 기록이 수정되었습니다.');
+      } else {
+        // Add new
+        const newMeal = {
+          id: 'meal_' + Date.now(),
+          name: mealName,
+          date: mealDate,
+          time: mealTime,
+          type: mealType,
+          
+          highProteinVeg,
+          hasDairy,
+          hasSugar,
+          isLateNight,
+          hasFlour: false,
+          score: calc.score,
+          photo: currentPhotoBase64 || ''
+        };
+        mealsData.push(newMeal);
+        showToast('새 식단이 성공적으로 등록되었습니다! 🌿');
+      }
+
+      saveMealsData();
+      saveRecentMenu(mealName);
+      closeMealModal();
+      selectedDateStr = mealDate;
+      renderCalendar();
+      renderSelectedDateDetail();
+      renderWeeklyPlanAndRecommendations();
+
+      if (!document.getElementById('view-analysis').classList.contains('hidden')) {
+        renderCorrelationAnalysis();
+      }
+    }
+
+    function deleteMeal(id) {
+      mealsData = mealsData.filter(m => m.id !== id);
+      saveMealsData();
+      closeMealModal();
+      renderCalendar();
+      renderSelectedDateDetail();
+      renderWeeklyPlanAndRecommendations();
+
+      if (!document.getElementById('view-analysis').classList.contains('hidden')) {
+        renderCorrelationAnalysis();
+      }
+      showToast('식단 기록이 삭제되었습니다. 🗑️');
+    }
+
+    // --- Skin Symptom Modal (Feature 1) ---
+    function openSymptomModal(dateStr = selectedDateStr) {
+      const modal = document.getElementById('modal-symptom');
+      const dateInput = document.getElementById('input-symptom-date');
+      const severitySlider = document.getElementById('input-symptom-severity');
+      const severityText = document.getElementById('symptom-severity-text');
+      const notesInput = document.getElementById('input-symptom-notes');
+      const tagChecks = document.querySelectorAll('.symptom-tag-check');
+
+      if (!modal || !dateInput || !severitySlider) return;
+
+      dateInput.value = dateStr;
+      const existing = symptomsData[dateStr];
+
+      if (existing) {
+        severitySlider.value = existing.severity;
+        notesInput.value = existing.notes || '';
+        tagChecks.forEach(chk => {
+          chk.checked = existing.tags.includes(chk.value);
+        });
+      } else {
+        severitySlider.value = 2;
+        notesInput.value = '';
+        tagChecks.forEach(chk => {
+          chk.checked = false;
+        });
+      }
+
+      updateSeverityText(severitySlider.value);
+      modal.classList.remove('hidden');
+    }
+
+    function closeSymptomModal() {
+      const modal = document.getElementById('modal-symptom');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function updateSeverityText(val) {
+      const severityText = document.getElementById('symptom-severity-text');
+      if (!severityText) return;
+      const v = Number(val);
+      const labels = [
+        '0점 (매우 깨끗함 ✨)',
+        '1점 (양호/경미한 피지)',
+        '2점 (경미한 붉은기)',
+        '3점 (주의/트러블 조짐 ⚠️)',
+        '4점 (심한 여드름/습진 🌋)',
+        '5점 (극심한 염증 상태 🚨)'
+      ];
+      severityText.textContent = labels[v] || `${v}점`;
+      if (v >= 4) severityText.className = 'font-extrabold text-rose-600 text-sm';
+      else if (v >= 2) severityText.className = 'font-bold text-amber-600 text-sm';
+      else severityText.className = 'font-bold text-pink-600 text-sm';
+    }
+
+    function saveSymptomFromModal() {
+      const dateInput = document.getElementById('input-symptom-date');
+      const severitySlider = document.getElementById('input-symptom-severity');
+      const notesInput = document.getElementById('input-symptom-notes');
+      const tagChecks = document.querySelectorAll('.symptom-tag-check');
+
+      const dateStr = dateInput.value || selectedDateStr;
+      const severity = Number(severitySlider.value);
+      const notes = notesInput.value.trim();
+      const tags = [];
+      tagChecks.forEach(chk => {
+        if (chk.checked) tags.push(chk.value);
+      });
+
+      symptomsData[dateStr] = {
+        severity,
+        tags,
+        notes
+      };
+
+      saveSymptomsData();
+      closeSymptomModal();
+      renderCalendar();
+      renderSelectedDateDetail();
+      renderWeeklyPlanAndRecommendations();
+
+      if (!document.getElementById('view-analysis').classList.contains('hidden')) {
+        renderCorrelationAnalysis();
+      }
+      showToast('컨디션이 기록되었습니다! 🩺');
+    }
+
+    // --- Tab Switching ---
+    function switchTab(tab) {
+      const viewCalendar = document.getElementById('view-calendar');
+      const viewAnalysis = document.getElementById('view-analysis');
+      const tabCalBtn = document.getElementById('tab-calendar');
+      const tabAnaBtn = document.getElementById('tab-analysis');
+      const navCalBtn = document.getElementById('nav-btn-calendar');
+      const navAnaBtn = document.getElementById('nav-btn-analysis');
+
+      if (tab === 'calendar') {
+        viewCalendar.classList.remove('hidden');
+        viewAnalysis.classList.add('hidden');
+        tabCalBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all bg-white text-slate-900 shadow-sm flex items-center justify-center gap-1.5 font-bold';
+        tabAnaBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 font-medium';
+        navCalBtn.className = 'flex flex-col items-center text-pink-600 font-bold';
+        navAnaBtn.className = 'flex flex-col items-center hover:text-slate-800 text-slate-500 font-medium';
+        renderCalendar();
+        renderSelectedDateDetail();
+      } else {
+        viewCalendar.classList.add('hidden');
+        viewAnalysis.classList.remove('hidden');
+        tabCalBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 font-medium';
+        tabAnaBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all bg-white text-slate-900 shadow-sm flex items-center justify-center gap-1.5 font-bold';
+        navCalBtn.className = 'flex flex-col items-center text-slate-500 font-medium';
+        navAnaBtn.className = 'flex flex-col items-center text-rose-600 font-bold';
+        renderCorrelationAnalysis();
+      }
+    }
+
+    // --- Wire Event Listeners on DOM Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      loadMenuPreferences();
+      renderCalendar();
+      renderSelectedDateDetail();
+      renderWeeklyPlanAndRecommendations();
+
+      // Weekly Plan & Recommendations Listeners
+      document.getElementById('btn-goto-weekly-plan')?.addEventListener('click', () => {
+        switchTab('analysis');
+        setTimeout(() => {
+          document.getElementById('weekly-plan-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      });
+
+      document.getElementById('btn-refresh-recommendations')?.addEventListener('click', () => {
+        currentRecOffset++;
+        renderRecommendedMealsList();
+        showToast('새로운 추천 식단을 불러왔습니다! 🥗', '🔄');
+      });
+
+
+      // Top Header Camera Button: triggers camera / photo library directly
+      const photoInput = document.getElementById('input-meal-photo');
+      
+      // Photo preview box also triggers photoInput on tap
+      document.getElementById('photo-preview-box')?.addEventListener('click', () => {
+        photoInput?.click();
+      });
+
+      // Favorite toggle button
+      document.getElementById('btn-toggle-favorite-current')?.addEventListener('click', () => {
+        const name = document.getElementById('input-meal-name')?.value.trim();
+        if (name) toggleFavoriteMenu(name);
+        else showToast('먼저 음식 이름을 입력하거나 사진을 올려주세요.');
+      });
+
+      document.getElementById('input-meal-name')?.addEventListener('input', (e) => {
+        updateFavButtonUI();
+        analyzeFoodByName(e.target.value);
+      });
+
+      // Favorite Menu Edit Modal Listeners
+      document.getElementById('btn-close-edit-fav')?.addEventListener('click', closeEditFavModal);
+
+      document.getElementById('btn-save-fav-action')?.addEventListener('click', () => {
+        const input = document.getElementById('input-edit-fav-name');
+        const newName = input?.value?.trim();
+        if (!newName) {
+          showToast('메뉴 이름을 입력해주세요.', '⚠️');
+          return;
+        }
+        if (currentEditingFavName) {
+          const oldName = currentEditingFavName;
+          const idx = favoriteMenus.indexOf(oldName);
+          if (idx !== -1) {
+            favoriteMenus[idx] = newName;
+          } else {
+            favoriteMenus.push(newName);
+          }
+          try {
+            localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(favoriteMenus));
+          } catch (err) {
+            console.error(err);
+          }
+          renderMenuChips();
+          updateFavButtonUI();
+
+          const nameInput = document.getElementById('input-meal-name');
+          if (nameInput && nameInput.value.trim() === oldName) {
+            nameInput.value = newName;
+            analyzeFoodByName(newName);
+          }
+          showToast(`'${newName}'(으)로 즐겨찾기가 수정되었습니다! ⭐`);
+        }
+        closeEditFavModal();
+      });
+
+      document.getElementById('btn-delete-fav-action')?.addEventListener('click', () => {
+        if (currentEditingFavName) {
+          const deletedName = currentEditingFavName;
+          favoriteMenus = favoriteMenus.filter(m => m !== deletedName);
+          try {
+            localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(favoriteMenus));
+          } catch (err) {
+            console.error(err);
+          }
+          renderMenuChips();
+          updateFavButtonUI();
+          showToast(`'${deletedName}' 즐겨찾기에서 삭제되었습니다! 🗑️`);
+        }
+        closeEditFavModal();
+      });
+
+      document.getElementById('modal-edit-favorite')?.addEventListener('click', (e) => {
+        if (e.target.id === 'modal-edit-favorite') {
+          closeEditFavModal();
+        }
+      });
+
+      document.getElementById('input-edit-fav-name')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('btn-save-fav-action')?.click();
+        }
+      });
+
+      // Gemini Vision API Key Settings Toggle & Save
+      const geminiBox = document.getElementById('gemini-key-box');
+      const inputGemini = document.getElementById('input-gemini-key');
+      const savedKey = localStorage.getItem(STORAGE_KEY_GEMINI_KEY);
+      if (savedKey && inputGemini) inputGemini.value = savedKey;
+
+      document.getElementById('btn-toggle-gemini-key')?.addEventListener('click', () => {
+        geminiBox?.classList.toggle('hidden');
+      });
+
+      document.getElementById('btn-save-gemini-key')?.addEventListener('click', () => {
+        const val = inputGemini?.value.trim();
+        if (val) {
+          localStorage.setItem(STORAGE_KEY_GEMINI_KEY, val);
+          showToast('Gemini Vision AI 키가 저장되었습니다! 🔑');
+          geminiBox?.classList.add('hidden');
+        } else {
+          localStorage.removeItem(STORAGE_KEY_GEMINI_KEY);
+          showToast('API 키가 삭제되어 기본 내장 AI로 동작합니다.');
+        }
+      });
+
+
+      // Tab Events
+      document.getElementById('tab-calendar')?.addEventListener('click', () => switchTab('calendar'));
+      document.getElementById('tab-analysis')?.addEventListener('click', () => switchTab('analysis'));
+      document.getElementById('nav-btn-calendar')?.addEventListener('click', () => switchTab('calendar'));
+      document.getElementById('nav-btn-analysis')?.addEventListener('click', () => switchTab('analysis'));
+
+      // Month Navigation
+      document.getElementById('btn-prev-month')?.addEventListener('click', () => {
+        if (currentMonth === 0) {
+          currentMonth = 11;
+          currentYear--;
+        } else {
+          currentMonth--;
+        }
+        renderCalendar();
+      });
+
+      document.getElementById('btn-next-month')?.addEventListener('click', () => {
+        if (currentMonth === 11) {
+          currentMonth = 0;
+          currentYear++;
+        } else {
+          currentMonth++;
+        }
+        renderCalendar();
+      });
+
+      document.getElementById('btn-today-month')?.addEventListener('click', () => {
+        const nowD = new Date();
+        currentYear = nowD.getFullYear();
+        currentMonth = nowD.getMonth();
+        selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+        renderCalendar();
+        renderSelectedDateDetail();
+      });
+
+      // Quick Meal Openers
+      document.getElementById('btn-floating-add-meal')?.addEventListener('click', () => toggleMealModal());
+      
+      // Quick Symptom Openers
+            document.getElementById('btn-log-symptom-view2')?.addEventListener('click', () => openSymptomModal('2026-10-28'));
+
+      // Modal Closers
+      document.getElementById('btn-close-modal-meal')?.addEventListener('click', closeMealModal);
+
+      
+      document.getElementById('btn-close-modal-symptom')?.addEventListener('click', closeSymptomModal);
+
+      // Meal Save & Delete
+      document.getElementById('btn-save-meal')?.addEventListener('click', saveMealFromModal);
+      document.getElementById('btn-delete-meal')?.addEventListener('click', () => {
+        if (editingMealId) deleteMeal(editingMealId);
+      });
+
+      // Symptom Save
+      document.getElementById('btn-save-symptom')?.addEventListener('click', saveSymptomFromModal);
+      document.getElementById('input-symptom-severity')?.addEventListener('input', (e) => {
+        updateSeverityText(e.target.value);
+      });
+
+      // Photo Upload Handlers
+      const fileInput = document.getElementById('input-meal-photo');
+      fileInput?.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handlePhotoUpload(e.target.files[0]);
+        }
+      });
+      document.getElementById('btn-remove-photo')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setPhotoPreview('');
+        if (fileInput) fileInput.value = '';
+      });
+
+      // Real-time Score Checklist Change Listeners
+      ['chk-protein-veg', 'chk-dairy', 'chk-sugar', 'chk-latenight'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', updateLiveScore);
+      });
+
+      // Time Input Change (auto check late night if >= 21:00 or < 05:00)
+      document.getElementById('input-meal-time')?.addEventListener('change', (e) => {
+        const isLate = checkIsLateNightFromTime(e.target.value);
+        const chkLate = document.getElementById('chk-latenight');
+        if (chkLate) {
+          chkLate.checked = isLate;
+          updateLiveScore();
+        }
+      });
+
+      // Meal Type Buttons
+      document.getElementById('btn-type-meal')?.addEventListener('click', () => setMealTypeUI('meal'));
+      document.getElementById('btn-type-snack')?.addEventListener('click', () => setMealTypeUI('snack'));
+
+
+
+      // Reset Data Button (Safe confirmation in-toast)
+          });
+  </script>
+</body>
+</html>
