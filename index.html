@@ -505,7 +505,10 @@
             <input id="input-meal-date" type="date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-pink-300 font-medium">
           </div>
           <div>
-            <label for="input-meal-time" class="block text-slate-500 font-semibold mb-0.5 text-[11px]">시간</label>
+            <div class="flex items-center justify-between mb-0.5">
+              <label for="input-meal-time" class="block text-slate-500 font-semibold text-[11px]">시간</label>
+              <span id="badge-time-slot" class="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">🌅 아침</span>
+            </div>
             <input id="input-meal-time" type="time" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-pink-300 font-medium">
           </div>
         </div>
@@ -1026,9 +1029,10 @@
       if (lateNightCheck && timeInput) {
         lateNightCheck.checked = checkIsLateNightFromTime(timeInput.value);
       }
-      setMealTypeUI(isSnack ? 'snack' : 'meal');
+      // Do not auto-override meal type; snack is chosen only when user explicitly clicks snack button
 
       updateLiveScore();
+      updateModalTimeSlotUI();
     }
 
     // --- Favorite & Recent Menus Storage Keys ---
@@ -1227,6 +1231,7 @@
           mealsData = [...initialSeedMeals];
           saveMealsData();
         }
+        mealsData.sort((a, b) => (a.date || '').localeCompare(b.date || '') || compareMealTime(a, b));
 
         const storedSymptoms = localStorage.getItem(STORAGE_KEY_SYMPTOMS);
         if (storedSymptoms) {
@@ -1282,6 +1287,80 @@
       const hour = parseInt(timeStr.split(':')[0], 10);
       if (isNaN(hour)) return false;
       return (hour >= 21 || hour < 5);
+    }
+
+    // Helper: Determine meal time slot and appropriate icon (아침/점심/간식/저녁/야식)
+    function getMealTimeSlot(timeStr, type = 'meal') {
+      if (type === 'snack') {
+        return {
+          label: '간식',
+          icon: '☕',
+          badgeBg: 'bg-amber-50',
+          text: 'text-amber-800',
+          border: 'border-amber-200'
+        };
+      }
+
+      if (!timeStr) {
+        return {
+          label: '식사',
+          icon: '🍽️',
+          badgeBg: 'bg-slate-50',
+          text: 'text-slate-700',
+          border: 'border-slate-200'
+        };
+      }
+
+      const parts = timeStr.split(':');
+      const hour = parseInt(parts[0], 10);
+      const min = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+      const totalMin = hour * 60 + min;
+
+      if (isNaN(hour)) {
+        return { label: '식사', icon: '🍽️', badgeBg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
+      }
+
+      // 05:00 ~ 10:59 -> 아침 🌅
+      if (totalMin >= 5 * 60 && totalMin < 11 * 60) {
+        return { label: '아침', icon: '🌅', badgeBg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' };
+      }
+      // 11:00 ~ 16:59 -> 점심 ☀️ (간식을 선택하지 않은 일반 식사는 17시 이전까지 점심으로 처리)
+      else if (totalMin >= 11 * 60 && totalMin < 17 * 60) {
+        return { label: '점심', icon: '☀️', badgeBg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' };
+      }
+      // 17:00 ~ 20:59 -> 저녁 🌙
+      else if (totalMin >= 17 * 60 && totalMin < 21 * 60) {
+        return { label: '저녁', icon: '🌙', badgeBg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' };
+      }
+      // 21:00 ~ 04:59 -> 야식 🦉
+      else {
+        return { label: '야식', icon: '🦉', badgeBg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' };
+      }
+    }
+
+    function updateModalTimeSlotUI() {
+      const timeInput = document.getElementById('input-meal-time');
+      const badge = document.getElementById('badge-time-slot');
+      if (!timeInput || !badge) return;
+      const slot = getMealTimeSlot(timeInput.value, getSelectedMealType());
+      badge.innerHTML = `<span>${slot.icon}</span> <span>${slot.label}</span>`;
+      badge.className = `text-[10px] font-bold ${slot.text} ${slot.badgeBg} border ${slot.border} px-1.5 py-0.5 rounded-full flex items-center gap-0.5`;
+    }
+
+
+    // Helper: Compare meal time for chronological sorting (earliest first: breakfast -> lunch -> dinner)
+    function compareMealTime(a, b) {
+      const normalizeTime = (t) => {
+        if (!t) return '00:00';
+        const parts = t.split(':');
+        if (parts.length === 2) {
+          return parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+        }
+        return t;
+      };
+      const timeA = normalizeTime(a.time);
+      const timeB = normalizeTime(b.time);
+      return timeA.localeCompare(timeB) || (a.id || '').localeCompare(b.id || '');
     }
 
     // --- Anti-inflammatory Score Calculator ---
@@ -1357,7 +1436,7 @@
       // Date cells
       for (let day = 1; day <= totalDays; day++) {
         const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayMeals = mealsData.filter(m => m.date === dateStr);
+        const dayMeals = mealsData.filter(m => m.date === dateStr).sort(compareMealTime);
         const daySymptom = symptomsData[dateStr];
         const isSelected = (dateStr === selectedDateStr);
 
@@ -1408,8 +1487,8 @@
             ${symptomIndicator}
           </div>
           ${mealIndicator}
-          <div class="text-[9px] text-slate-400 truncate">
-            ${dayMeals.length > 0 ? (dayMeals[0].name.slice(0, 4) + '..') : ''}
+          <div class="text-[9px] text-slate-500 truncate flex items-center justify-center gap-0.5 px-0.5">
+            ${dayMeals.length > 0 ? `<span class="text-[10px]">${getMealTimeSlot(dayMeals[0].time, dayMeals[0].type).icon}</span><span>${dayMeals[0].name.slice(0, 3)}</span>` : ''}
           </div>
         `;
 
@@ -1436,7 +1515,7 @@
       const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
       dateDisplay.textContent = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 (${daysOfWeek[dateObj.getDay()]})`;
 
-      const dayMeals = mealsData.filter(m => m.date === selectedDateStr);
+      const dayMeals = mealsData.filter(m => m.date === selectedDateStr).sort(compareMealTime);
       const daySymptom = symptomsData[selectedDateStr];
 
       // Score Header
@@ -1501,13 +1580,22 @@
           const swipeItem = document.createElement('div');
           swipeItem.className = 'swipe-item relative overflow-hidden rounded-2xl bg-slate-100 mb-2.5 shadow-sm';
           
+          const slot = getMealTimeSlot(meal.time, meal.type);
           let photoHtml = '';
           if (meal.photo) {
-            photoHtml = `<img src="${meal.photo}" alt="${meal.name}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0">`;
+            photoHtml = `
+              <div class="relative w-14 h-14 flex-shrink-0">
+                <img src="${meal.photo}" alt="${meal.name}" class="w-14 h-14 rounded-xl object-cover border border-slate-200">
+                <span class="absolute -top-1 -left-1 w-5 h-5 rounded-full ${slot.badgeBg} border ${slot.border} flex items-center justify-center text-[10px] shadow-xs" title="${slot.label}">
+                  ${slot.icon}
+                </span>
+              </div>
+            `;
           } else {
             photoHtml = `
-              <div class="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl flex-shrink-0">
-                ${meal.type === 'snack' ? '☕' : '🥗'}
+              <div class="w-14 h-14 rounded-xl ${slot.badgeBg} border ${slot.border} flex flex-col items-center justify-center flex-shrink-0 shadow-xs">
+                <span class="text-xl leading-none">${slot.icon}</span>
+                <span class="text-[9px] font-bold ${slot.text} mt-0.5">${slot.label}</span>
               </div>
             `;
           }
@@ -1516,7 +1604,7 @@
           if (meal.isHomeCooked) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#ffddff] text-slate-900 border border-pink-200">홈메이드</span> `;
           if (meal.hasDairy) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700">유제품</span> `;
           if (meal.hasSugar) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700">가공당</span> `;
-          if (meal.isLateNight) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700">21시야식</span> `;
+          if (meal.isLateNight) tagsHtml += `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">야식</span> `;
 
           swipeItem.innerHTML = `
             <!-- Underneath Action: Red Delete Button revealed ONLY when swiped left (z-0 behind white card) -->
@@ -1529,10 +1617,15 @@
               ${photoHtml}
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between">
-                  <span class="text-[11px] text-slate-400 font-medium">${meal.time} · ${meal.type === 'snack' ? '간식' : '식사'}</span>
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${slot.badgeBg} ${slot.text} border ${slot.border}">
+                      <span>${slot.icon}</span> <span>${slot.label}</span>
+                    </span>
+                    <span class="text-[11px] text-slate-400 font-medium">${meal.time}</span>
+                  </div>
                   <span class="text-xs font-extrabold ${cfg.text}">★ ${meal.score}</span>
                 </div>
-                <h4 class="font-bold text-slate-900 text-xs truncate mt-0.5">${meal.name}</h4>
+                <h4 class="font-bold text-slate-900 text-xs truncate mt-1">${meal.name}</h4>
                 <div class="mt-1 flex flex-wrap gap-1">
                   ${tagsHtml || '<span class="text-[10px] text-slate-400">클린 식단</span>'}
                 </div>
@@ -2337,6 +2430,7 @@
         btnMeal.className = 'py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-medium text-center';
         btnSnack.className = 'py-2 rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-700 font-bold text-center';
       }
+      updateModalTimeSlotUI();
     }
 
     function getSelectedMealType() {
@@ -2513,6 +2607,8 @@
         showToast('새 식단이 성공적으로 등록되었습니다! 🌿');
       }
 
+      // Keep mealsData sorted chronologically by date and time
+      mealsData.sort((a, b) => (a.date || '').localeCompare(b.date || '') || compareMealTime(a, b));
       saveMealsData();
       saveRecentMenu(mealName);
       closeMealModal();
@@ -2865,7 +2961,16 @@
         document.getElementById(id)?.addEventListener('change', updateLiveScore);
       });
 
-      // Time Input Change (auto check late night if >= 21:00 or < 05:00)
+      // Time Input Change (auto check late night if >= 21:00 or < 05:00, update time slot icon)
+      document.getElementById('input-meal-time')?.addEventListener('input', (e) => {
+        const isLate = checkIsLateNightFromTime(e.target.value);
+        const chkLate = document.getElementById('chk-latenight');
+        if (chkLate) {
+          chkLate.checked = isLate;
+          updateLiveScore();
+        }
+        updateModalTimeSlotUI();
+      });
       document.getElementById('input-meal-time')?.addEventListener('change', (e) => {
         const isLate = checkIsLateNightFromTime(e.target.value);
         const chkLate = document.getElementById('chk-latenight');
@@ -2873,6 +2978,7 @@
           chkLate.checked = isLate;
           updateLiveScore();
         }
+        updateModalTimeSlotUI();
       });
 
       // Meal Type Buttons
