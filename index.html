@@ -106,11 +106,14 @@
       width: 100% !important;
     }
 
-    /* Reduced font size for date and time inputs */
+    /* Reduced height and compact font for date and time inputs */
     #input-meal-date, #input-meal-time, #input-symptom-date {
-      font-size: 13px !important;
-      padding: 0.35rem 0.5rem !important;
-      height: 36px !important;
+      font-size: 11px !important;
+      padding: 0.15rem 0.4rem !important;
+      height: 28px !important;
+      min-height: 28px !important;
+      max-height: 28px !important;
+      border-radius: 0.5rem !important;
     }
   </style>
   <link rel="manifest" href="data:application/manifest+json;utf-8,%7B%22name%22%3A%22%EB%AD%90%EB%A8%B9%EC%97%88%EB%8B%88%22%2C%22short_name%22%3A%22%EB%AD%90%EB%A8%B9%EC%97%88%EB%8B%88%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%2310b981%22%7D">
@@ -119,7 +122,8 @@
 
   <!-- Sleek Native App Header (No bulky marketing banner) -->
   <header class="sticky top-0 z-30 bg-white border-b border-pink-100/80 px-4 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-    <div class="max-w-md mx-auto flex items-center justify-center">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="w-8"></div>
       <div class="flex items-center space-x-2">
         <div class="w-7 h-7 rounded-xl bg-[#ffddff] flex items-center justify-center shadow-sm border border-pink-200">
           <svg class="w-4 h-4 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -130,11 +134,14 @@
         </div>
         <h1 class="text-base font-black tracking-tight text-slate-900">뭐먹었니</h1>
       </div>
+      <button id="btn-open-settings" type="button" class="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 border border-slate-200 active:scale-95 transition-transform cursor-pointer" title="설정">
+        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+      </button>
     </div>
   </header>
 
   <!-- Main View Container -->
-  <main class="flex-1 max-w-md mx-auto w-full px-4 pt-3 pb-24">
+  <main class="flex-1 max-w-md mx-auto w-full px-4 pt-3 pb-28">
 
     <!-- View Tabs: 1) 캘린더, 2) 컨디션 -->
     <div class="flex bg-slate-200/80 p-1 rounded-xl mb-4 text-xs font-semibold">
@@ -149,23 +156,28 @@
     <!-- VIEW 1: CALENDAR VIEW -->
     <section id="view-calendar" class="space-y-4">
 
-      <!-- Calendar Controls (Month Selector) -->
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-        <div class="flex items-center justify-between mb-3">
-          <h2 id="calendar-title" class="text-base font-bold text-slate-900">2026년 10월</h2>
+      <!-- Calendar Controls (Month / Week Selector) -->
+      <div id="calendar-card" class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-2.5">
+          <div class="flex items-center gap-2">
+            <h2 id="calendar-title" class="text-base font-bold text-slate-900">2026년 10월</h2>
+            <button id="btn-calendar-view-mode" type="button" class="text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-0.5 active:scale-95 transition-transform" title="월간/주간 전환">
+              <span>📅</span> <span>월간</span>
+            </button>
+          </div>
           <div class="flex items-center space-x-1">
-            <button id="btn-prev-month" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 active:scale-95 transition-transform">
+            <button id="btn-prev-month" type="button" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 active:scale-95 transition-transform" title="이전">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <button id="btn-today-month" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">오늘</button>
-            <button id="btn-next-month" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 active:scale-95 transition-transform">
+            <button id="btn-today-month" type="button" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 active:scale-95 transition-transform">오늘</button>
+            <button id="btn-next-month" type="button" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 active:scale-95 transition-transform" title="다음">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
           </div>
         </div>
 
-        <!-- Star Rating Legend -->
-        <div class="flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2.5 pb-1">
+        <!-- Star Rating Legend (Hidden in Week View) -->
+        <div id="calendar-legend" class="flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2.5 pb-1">
           <div class="flex items-center gap-1">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
             <span class="text-emerald-700 font-bold">최적 (4.5~5점)</span>
@@ -182,6 +194,12 @@
             <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
             <span class="text-rose-700 font-semibold">위험 (&lt;2.5)</span>
           </div>
+        </div>
+
+        <!-- Swipe Hint (Shown in Week View) -->
+        <div id="calendar-swipe-hint" class="hidden flex items-center justify-between text-[10px] text-pink-700 bg-pink-50/80 border border-pink-100 rounded-lg px-2.5 py-1 my-1">
+          <span class="flex items-center gap-1"><span>👉</span> <span>오른쪽으로 스와이프하면 월간으로 돌아갑니다</span></span>
+          <span class="text-[9px] text-slate-400">또는 '월간 보기' 터치</span>
         </div>
 
         <!-- Day Names Header -->
@@ -201,44 +219,45 @@
         </div>
       </div>
 
-      <!-- Selected Date Detail Card -->
-      <div id="selected-date-card" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+      <!-- Selected Date Detail Card (Displayed right below 1-row weekly calendar in Week mode) -->
+      <div id="selected-date-card" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 hidden animate-in fade-in duration-150">
         <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
           <div class="flex items-center gap-2">
             <span id="detail-date-display" class="font-bold text-slate-900 text-sm">10월 28일 (화)</span>
             <span id="detail-score-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-[#ffddff] text-slate-900 border border-pink-200">★ 5.0</span>
           </div>
-          <p id="detail-summary-text" class="text-xs text-slate-500">총 2끼 식사 기록됨 (왼쪽으로 밀어서 삭제)</p>
-        </div>
-
-        <!-- Skin Symptom Badge on Selected Day -->
-        <div id="detail-symptom-banner" class="rounded-xl p-3 bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-          <!-- Populated by JS -->
+          <p id="detail-summary-text" class="text-xs text-slate-500">총 2끼 식사 기록됨 (밀어서 삭제)</p>
         </div>
 
         <!-- Meals List for Selected Date -->
         <div id="detail-meals-list" class="space-y-2.5 pt-1">
           <!-- Populated by JS -->
         </div>
+
+        <!-- Minimal Recommendation Card: Sleek, non-intrusive -->
+        <div id="minimal-rec-card" class="mt-3 pt-3 border-t border-slate-100">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5 text-slate-700">
+              <span class="text-xs">💡</span>
+              <span class="text-[11px] font-bold">이런 메뉴는 어때요?</span>
+            </div>
+            <button id="btn-refresh-minimal-rec" type="button" class="text-[10px] text-slate-400 hover:text-pink-600 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer" title="다른 메뉴 추천">
+              <span class="text-xs">🔄</span>
+              <span>새로고침</span>
+            </button>
+          </div>
+          <div id="minimal-rec-chips" class="flex flex-wrap gap-1.5">
+            <!-- Populated by JS -->
+          </div>
+        </div>
       </div>
 
 
 
     
-      <!-- Quick Banner: 1-Week Evaluation & Next Week Meal Recommendation -->
-      <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 border border-pink-100 flex items-center justify-between shadow-sm">
-        <div class="flex items-center gap-2.5">
-          <span class="text-2xl">🏆</span>
-          <div>
-            <h3 class="text-xs font-bold text-slate-900">1주 식단 채점 & 다음 주 식단 추천</h3>
-            <p class="text-[11px] text-slate-500">지난 7일간 기록을 분석하여 다음 주 최적 식단을 제안합니다</p>
-          </div>
-        </div>
-        <button id="btn-goto-weekly-plan" type="button" class="px-3 py-1.5 rounded-xl bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 text-xs font-bold border border-pink-200 shadow-sm active:scale-95 transition-transform flex items-center gap-1">
-          <span>확인하기</span>
-          <span>›</span>
-        </button>
-      </div>
+
+
+
     </section>
 
     <!-- VIEW 2: CORRELATION & SYMPTOM ANALYSIS VIEW -->
@@ -382,20 +401,10 @@
 
   </main>
 
-  <!-- Bottom Floating Action Bar / Mobile Nav -->
-  <div class="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-pink-100 px-5 py-2.5 pb-safe">
-    <div class="max-w-md mx-auto flex items-center justify-between">
-      <div class="flex items-center space-x-6 text-xs font-medium text-slate-500">
-        <button id="nav-btn-calendar" class="flex flex-col items-center text-slate-900 font-bold transition-colors">
-          <span class="text-lg">📅</span>
-          <span class="text-[11px] mt-0.5">캘린더</span>
-        </button>
-        <button id="nav-btn-analysis" class="flex flex-col items-center hover:text-slate-800 text-slate-400 transition-colors">
-          <span class="text-lg">📈</span>
-          <span class="text-[11px] mt-0.5">컨디션</span>
-        </button>
-      </div>
-      <button id="btn-floating-add-meal" class="w-12 h-12 rounded-full bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 text-3xl font-light shadow-md border border-pink-200 flex items-center justify-center active:scale-95 transition-transform" title="식단 추가 (토글)">
+  <!-- Pure Floating Action Button (Elevated, no bottom bar, + only) -->
+  <div class="fixed bottom-14 left-0 right-0 z-40 pointer-events-none">
+    <div class="max-w-md mx-auto px-5 flex justify-end">
+      <button id="btn-floating-add-meal" type="button" class="pointer-events-auto w-14 h-14 rounded-full bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 text-3xl font-light shadow-lg hover:shadow-xl border border-pink-200 flex items-center justify-center active:scale-90 transition-all duration-200 cursor-pointer" title="식단 추가">
         +
       </button>
     </div>
@@ -498,18 +507,18 @@
           </div>
         </div>
 
-        <!-- Date & Time Row (Compact Reduced Font) -->
+        <!-- Date & Time Row (Slim Minimal Height) -->
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label for="input-meal-date" class="block text-slate-500 font-semibold mb-0.5 text-[11px]">날짜</label>
-            <input id="input-meal-date" type="date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-pink-300 font-medium">
+            <label for="input-meal-date" class="block text-slate-500 font-semibold mb-0.5 text-[10px]">날짜</label>
+            <input id="input-meal-date" type="date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] text-slate-700 focus:outline-none focus:border-pink-300 font-medium h-7">
           </div>
           <div>
             <div class="flex items-center justify-between mb-0.5">
-              <label for="input-meal-time" class="block text-slate-500 font-semibold text-[11px]">시간</label>
-              <span id="badge-time-slot" class="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">🌅 아침</span>
+              <label for="input-meal-time" class="block text-slate-500 font-semibold text-[10px]">시간</label>
+              <span id="badge-time-slot" class="text-[9px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">🌅 아침</span>
             </div>
-            <input id="input-meal-time" type="time" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-pink-300 font-medium">
+            <input id="input-meal-time" type="time" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] text-slate-700 focus:outline-none focus:border-pink-300 font-medium h-7">
           </div>
         </div>
 
@@ -623,6 +632,69 @@
   </div>
 
   
+  <!-- MODAL: SETTINGS (Data Backup & Restore) -->
+  <div id="modal-settings" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
+      
+      <!-- Settings Header -->
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-sm border border-slate-200">⚙️</div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">설정</h3>
+            <p class="text-[11px] text-slate-500">데이터 백업, 복원 및 앱 정보</p>
+          </div>
+        </div>
+        <button id="btn-close-settings" type="button" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg active:scale-95 transition-transform cursor-pointer" title="닫기">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Settings Body -->
+      <div class="p-5 overflow-y-auto space-y-4 text-xs">
+        
+        <!-- Backup & Restore Section -->
+        <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200 space-y-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-base">💾</div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-xs">식단 데이터 백업 및 복원</h4>
+              <p class="text-[11px] text-slate-500">폰을 바꾸거나 캐시를 지워도 파일로 안전하게 복구할 수 있습니다</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button id="btn-export-backup" type="button" class="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-transform shadow-xs cursor-pointer">
+              <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span>데이터 백업</span>
+            </button>
+            <button id="btn-import-restore" type="button" class="py-2.5 px-3 rounded-xl bg-[#ffddff] hover:bg-[#f6cbf6] text-slate-900 border border-pink-200 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-transform shadow-xs cursor-pointer">
+              <svg class="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12"></path></svg>
+              <span>데이터 복원</span>
+            </button>
+            <input id="input-restore-file" type="file" accept=".json,application/json" class="hidden">
+          </div>
+        </div>
+
+        <!-- App Storage Info -->
+        <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200 space-y-2 text-slate-600">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-medium text-slate-500">저장된 식단 기록</span>
+            <span id="settings-meal-count" class="font-bold text-slate-800">0끼</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-medium text-slate-500">저장 방식</span>
+            <span class="font-bold text-emerald-600">내 폰 로컬 저장 (안전한 개인 소장)</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-medium text-slate-500">앱 버전</span>
+            <span class="font-bold text-slate-700">v1.3</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: EDIT FAVORITE MENU -->
   <div id="modal-edit-favorite" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border border-pink-100 animate-in fade-in zoom-in duration-150">
@@ -769,6 +841,32 @@
     let correlationChartInstance = null;
     let editingMealId = null;
     let currentPhotoBase64 = null;
+    let calendarViewMode = 'month'; // 'month' or 'week'
+
+    // Helper: Compute 7 days of the week containing the given dateStr (Sunday to Saturday)
+    function getWeekDays(dateStr) {
+      const target = new Date(dateStr + 'T00:00:00');
+      const dayOfWeek = target.getDay(); // 0 is Sunday, 6 is Saturday
+      const sunday = new Date(target);
+      sunday.setDate(target.getDate() - dayOfWeek);
+
+      const weekDays = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(sunday);
+        d.setDate(sunday.getDate() + i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        weekDays.push({
+          dateStr: `${yyyy}-${mm}-${dd}`,
+          year: yyyy,
+          month: d.getMonth(),
+          day: d.getDate(),
+          dayOfWeek: i
+        });
+      }
+      return weekDays;
+    }
 
     // --- Sample Seed Data (Empty for real personal use) ---
     const initialSeedMeals = [];
@@ -1049,12 +1147,12 @@
         if (favs) favoriteMenus = JSON.parse(favs);
         const rec = localStorage.getItem(STORAGE_KEY_RECENTS);
         if (rec) {
-          recentMenus = JSON.parse(rec).slice(0, 10);
+          recentMenus = JSON.parse(rec).slice(0, 5);
         }
         
-        // If recentMenus is empty, auto-populate from recorded meals in mealsData (up to 10 items)
+        // If recentMenus is empty, auto-populate from recorded meals in mealsData (up to 5 items)
         if ((!recentMenus || recentMenus.length === 0) && mealsData && mealsData.length > 0) {
-          const recordedNames = [...new Set(mealsData.map(m => m.name).filter(n => n && n !== '이름 없는 식단'))].reverse().slice(0, 10);
+          const recordedNames = [...new Set(mealsData.map(m => m.name).filter(n => n && n !== '이름 없는 식단'))].reverse().slice(0, 5);
           if (recordedNames.length > 0) {
             recentMenus = recordedNames;
             localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(recentMenus));
@@ -1069,8 +1167,8 @@
     function saveRecentMenu(name) {
       if (!name || name === '이름 없는 식단') return;
       const cleanName = name.trim();
-      // Keep up to 10 items; prepend newest and drop oldest if count exceeds 10
-      recentMenus = [cleanName, ...recentMenus.filter(n => n !== cleanName)].slice(0, 10);
+      // Keep up to 5 items; prepend newest and drop oldest if count exceeds 5
+      recentMenus = [cleanName, ...recentMenus.filter(n => n !== cleanName)].slice(0, 5);
       try {
         localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(recentMenus));
       } catch (e) {
@@ -1363,6 +1461,113 @@
       return timeA.localeCompare(timeB) || (a.id || '').localeCompare(b.id || '');
     }
 
+    // --- Settings Modal Functions ---
+    function openSettingsModal() {
+      const modal = document.getElementById('modal-settings');
+      const countElem = document.getElementById('settings-meal-count');
+      if (countElem) {
+        countElem.textContent = `${mealsData.length}끼`;
+      }
+      modal?.classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('modal-settings')?.classList.add('hidden');
+    }
+
+    // --- Data Backup & Restore Functions ---
+    function exportBackupData() {
+      try {
+        const backupObj = {
+          appName: 'what_did_you_eat',
+          version: 1,
+          exportDate: new Date().toISOString(),
+          meals: mealsData || [],
+          symptoms: symptomsData || {},
+          recentMenus: recentMenus || [],
+          favoriteMenus: favoriteMenus || []
+        };
+        const jsonStr = JSON.stringify(backupObj, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const filename = `식단백업_${yyyy}${mm}${dd}.json`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast(`식단 데이터(${mealsData.length}건)가 안전하게 백업되었습니다! 💾`, '💾');
+      } catch (err) {
+        console.error('Export backup failed:', err);
+        showToast('백업 파일 생성 중 오류가 발생했습니다.', '⚠️');
+      }
+    }
+
+    function importRestoreData(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!data || (!data.meals && !Array.isArray(data))) {
+            showToast('올바른 백업 파일(.json) 형식이 아닙니다.', '⚠️');
+            return;
+          }
+
+          const importedMeals = Array.isArray(data) ? data : (data.meals || []);
+          const importedSymptoms = (data && typeof data.symptoms === 'object') ? data.symptoms : {};
+          const importedRecents = (data && Array.isArray(data.recentMenus)) ? data.recentMenus : [];
+          const importedFavorites = (data && Array.isArray(data.favoriteMenus)) ? data.favoriteMenus : [];
+
+          if (importedMeals.length === 0 && Object.keys(importedSymptoms).length === 0) {
+            showToast('백업 파일 안에 저장된 데이터가 없습니다.', '⚠️');
+            return;
+          }
+
+          // Merge meals by ID
+          const existingMap = new Map();
+          mealsData.forEach(m => existingMap.set(m.id, m));
+          importedMeals.forEach(m => existingMap.set(m.id, m));
+          mealsData = Array.from(existingMap.values()).sort(compareMealTime);
+
+          symptomsData = { ...symptomsData, ...importedSymptoms };
+          if (importedFavorites.length > 0) favoriteMenus = [...new Set([...favoriteMenus, ...importedFavorites])];
+          if (importedRecents.length > 0) recentMenus = [...new Set([...importedRecents, ...recentMenus])].slice(0, 5);
+
+          saveMealsData();
+          saveSymptomsData();
+          try {
+            localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(favoriteMenus));
+            localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(recentMenus));
+          } catch (err) {
+            console.error('Save preferences failed:', err);
+          }
+
+          renderMenuChips();
+          renderCalendar();
+          if (calendarViewMode === 'week') renderSelectedDateDetail();
+          if (!document.getElementById('view-analysis').classList.contains('hidden')) {
+            renderCorrelationAnalysis();
+          }
+
+          showToast(`식단 ${importedMeals.length}건이 성공적으로 복원되었습니다! ✨`, '🎉');
+        } catch (err) {
+          console.error('Restore failed:', err);
+          showToast('백업 파일을 읽는 중 오류가 발생했습니다.', '⚠️');
+        }
+      };
+      reader.readAsText(file);
+    }
+
     // --- Anti-inflammatory Score Calculator ---
     function calculateScore(options) {
       // 1. Protein & Vegetable Base: 5.0 points if true, else 3.5 points
@@ -1414,109 +1619,197 @@
       }
     }
 
-    // --- Calendar Rendering ---
+    // --- Calendar Rendering (Month vs Week View) ---
     function renderCalendar() {
       const titleElem = document.getElementById('calendar-title');
       const gridElem = document.getElementById('calendar-grid');
+      const legendElem = document.getElementById('calendar-legend');
+      const swipeHint = document.getElementById('calendar-swipe-hint');
+      const selectedDateCard = document.getElementById('selected-date-card');
+      const viewModeBadge = document.getElementById('btn-calendar-view-mode');
       if (!titleElem || !gridElem) return;
 
-      titleElem.textContent = `${currentYear}년 ${currentMonth + 1}월`;
       gridElem.innerHTML = '';
 
-      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-      const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+      if (calendarViewMode === 'month') {
+        // --- MONTH VIEW ---
+        titleElem.textContent = `${currentYear}년 ${currentMonth + 1}월`;
+        if (viewModeBadge) {
+          viewModeBadge.innerHTML = '<span>📅</span> <span>월간</span>';
+          viewModeBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-0.5 active:scale-95 transition-transform';
+        }
+        if (legendElem) legendElem.classList.remove('hidden');
+        if (swipeHint) swipeHint.classList.add('hidden');
+        if (selectedDateCard) selectedDateCard.classList.add('hidden');
 
-      // Empty lead days
-      for (let i = 0; i < firstDay; i++) {
-        const emptyCell = document.createElement('div');
-        emptyCell.className = 'h-16 rounded-xl bg-slate-50/50 opacity-40';
-        gridElem.appendChild(emptyCell);
-      }
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-      // Date cells
-      for (let day = 1; day <= totalDays; day++) {
-        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayMeals = mealsData.filter(m => m.date === dateStr).sort(compareMealTime);
-        const daySymptom = symptomsData[dateStr];
-        const isSelected = (dateStr === selectedDateStr);
-
-        let avgScore = null;
-        if (dayMeals.length > 0) {
-          const sum = dayMeals.reduce((acc, curr) => acc + curr.score, 0);
-          avgScore = Number((sum / dayMeals.length).toFixed(1));
+        // Empty lead days
+        for (let i = 0; i < firstDay; i++) {
+          const emptyCell = document.createElement('div');
+          emptyCell.className = 'h-16 rounded-xl bg-slate-50/50 opacity-40';
+          gridElem.appendChild(emptyCell);
         }
 
-        const cell = document.createElement('div');
-        let borderClass = isSelected ? 'ring-2 ring-pink-300 border-transparent shadow-md' : 'border border-slate-100 hover:border-slate-300';
-        let bgClass = 'bg-white';
+        // Date cells
+        for (let day = 1; day <= totalDays; day++) {
+          const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const dayMeals = mealsData.filter(m => m.date === dateStr).sort(compareMealTime);
+          const daySymptom = symptomsData[dateStr];
+          const isSelected = (dateStr === selectedDateStr);
 
-        if (avgScore !== null) {
-          if (avgScore >= 4.5) bgClass = 'bg-emerald-50/80';
-          else if (avgScore >= 3.5) bgClass = 'bg-lime-50/80';
-          else if (avgScore >= 2.5) bgClass = 'bg-amber-50/80';
-          else bgClass = 'bg-rose-50/80';
-        }
+          let avgScore = null;
+          if (dayMeals.length > 0) {
+            const sum = dayMeals.reduce((acc, curr) => acc + curr.score, 0);
+            avgScore = Number((sum / dayMeals.length).toFixed(1));
+          }
 
-        cell.className = `h-16 p-1 rounded-xl flex flex-col justify-between cursor-pointer transition-all ${bgClass} ${borderClass}`;
-        cell.dataset.date = dateStr;
+          const cell = document.createElement('div');
+          let borderClass = isSelected ? 'ring-2 ring-pink-300 border-transparent shadow-md' : 'border border-slate-100 hover:border-slate-300';
+          let bgClass = 'bg-white';
 
-        // Day Number + Symptom Badge
-        let symptomIndicator = '';
-        if (daySymptom && daySymptom.severity > 0) {
-          const sevColor = daySymptom.severity >= 3 ? 'text-rose-600 bg-rose-100' : 'text-amber-600 bg-amber-100';
-          symptomIndicator = `<span class="text-[9px] font-bold px-1 rounded ${sevColor}" title="피부 트러블 ${daySymptom.severity}단계">🚨${daySymptom.severity}</span>`;
-        }
+          if (avgScore !== null) {
+            if (avgScore >= 4.5) bgClass = 'bg-emerald-50/80';
+            else if (avgScore >= 3.5) bgClass = 'bg-lime-50/80';
+            else if (avgScore >= 2.5) bgClass = 'bg-amber-50/80';
+            else bgClass = 'bg-rose-50/80';
+          }
 
-        // Meal Indicator / Score Badge
-        let mealIndicator = '';
-        if (avgScore !== null) {
-          const cfg = getScoreColorConfig(avgScore);
-          mealIndicator = `
-            <div class="flex items-center justify-center gap-0.5 mt-0.5">
-              <span class="w-1.5 h-1.5 rounded-full ${cfg.bg}"></span>
-              <span class="text-[10px] font-bold ${cfg.text}">${avgScore}</span>
+          cell.className = `h-16 p-1 rounded-xl flex flex-col justify-between cursor-pointer transition-all ${bgClass} ${borderClass}`;
+          cell.dataset.date = dateStr;
+
+          // Day Number + Symptom Badge
+          let symptomIndicator = '';
+          if (daySymptom && daySymptom.severity > 0) {
+            const sevColor = daySymptom.severity >= 3 ? 'text-rose-600 bg-rose-100' : 'text-amber-600 bg-amber-100';
+            symptomIndicator = `<span class="text-[9px] font-bold px-1 rounded ${sevColor}" title="피부 트러블 ${daySymptom.severity}단계">🚨${daySymptom.severity}</span>`;
+          }
+
+          // Meal Indicator / Score Badge
+          let mealIndicator = '';
+          if (avgScore !== null) {
+            const cfg = getScoreColorConfig(avgScore);
+            mealIndicator = `
+              <div class="flex items-center justify-center gap-0.5 mt-0.5">
+                <span class="w-1.5 h-1.5 rounded-full ${cfg.bg}"></span>
+                <span class="text-[10px] font-bold ${cfg.text}">${avgScore}</span>
+              </div>
+            `;
+          } else {
+            mealIndicator = `<span class="text-[10px] text-slate-300">-</span>`;
+          }
+
+          cell.innerHTML = `
+            <div class="flex items-center justify-between px-0.5">
+              <span class="text-xs font-semibold ${isSelected ? 'text-slate-800 font-extrabold' : 'text-slate-700'}">${day}</span>
+              ${symptomIndicator}
+            </div>
+            ${mealIndicator}
+            <div class="text-[9px] text-slate-500 truncate flex items-center justify-center gap-0.5 px-0.5">
+              ${dayMeals.length > 0 ? `<span class="text-[10px]">${getMealTimeSlot(dayMeals[0].time, dayMeals[0].type).icon}</span><span>${dayMeals[0].name.slice(0, 3)}</span>` : ''}
             </div>
           `;
-        } else {
-          mealIndicator = `<span class="text-[10px] text-slate-300">-</span>`;
+
+          // Tapping a date in Month View enters Week View and opens meal list immediately below!
+          cell.addEventListener('click', () => {
+            selectedDateStr = dateStr;
+            calendarViewMode = 'week';
+            renderCalendar();
+            renderSelectedDateDetail();
+          });
+
+          gridElem.appendChild(cell);
         }
+      } else {
+        // --- WEEK VIEW (Compact 1-row view, list right below) ---
+        const weekDays = getWeekDays(selectedDateStr);
+        const startD = weekDays[0];
+        const endD = weekDays[6];
 
-        cell.innerHTML = `
-          <div class="flex items-center justify-between px-0.5">
-            <span class="text-xs font-semibold ${isSelected ? 'text-slate-800 font-extrabold' : 'text-slate-700'}">${day}</span>
-            ${symptomIndicator}
-          </div>
-          ${mealIndicator}
-          <div class="text-[9px] text-slate-500 truncate flex items-center justify-center gap-0.5 px-0.5">
-            ${dayMeals.length > 0 ? `<span class="text-[10px]">${getMealTimeSlot(dayMeals[0].time, dayMeals[0].type).icon}</span><span>${dayMeals[0].name.slice(0, 3)}</span>` : ''}
-          </div>
-        `;
+        titleElem.textContent = `${startD.month + 1}월 ${startD.day}일 ~ ${endD.month + 1}월 ${endD.day}일`;
+        if (viewModeBadge) {
+          viewModeBadge.innerHTML = '<span>‹</span> <span>월간 보기</span>';
+          viewModeBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-200 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer';
+        }
+        if (legendElem) legendElem.classList.add('hidden');
+        if (swipeHint) swipeHint.classList.remove('hidden');
+        if (selectedDateCard) selectedDateCard.classList.remove('hidden');
 
-        cell.addEventListener('click', () => {
-          selectedDateStr = dateStr;
-          renderCalendar();
-          renderSelectedDateDetail();
+        weekDays.forEach(w => {
+          const dateStr = w.dateStr;
+          const dayMeals = mealsData.filter(m => m.date === dateStr).sort(compareMealTime);
+          const daySymptom = symptomsData[dateStr];
+          const isSelected = (dateStr === selectedDateStr);
+
+          let avgScore = null;
+          if (dayMeals.length > 0) {
+            const sum = dayMeals.reduce((acc, curr) => acc + curr.score, 0);
+            avgScore = Number((sum / dayMeals.length).toFixed(1));
+          }
+
+          const cell = document.createElement('div');
+          let borderClass = isSelected ? 'ring-2 ring-pink-400 bg-pink-50/80 shadow-md font-bold' : 'border border-slate-100 hover:border-slate-300 bg-white';
+
+          let mealIndicator = '';
+          if (avgScore !== null) {
+            const cfg = getScoreColorConfig(avgScore);
+            mealIndicator = `
+              <div class="flex items-center justify-center gap-0.5 mt-0.5">
+                <span class="w-1.5 h-1.5 rounded-full ${cfg.bg}"></span>
+                <span class="text-[10px] font-bold ${cfg.text}">${avgScore}</span>
+              </div>
+            `;
+          } else {
+            mealIndicator = `<span class="text-[10px] text-slate-300">-</span>`;
+          }
+
+          let symptomIndicator = '';
+          if (daySymptom && daySymptom.severity > 0) {
+            const sevColor = daySymptom.severity >= 3 ? 'text-rose-600' : 'text-amber-600';
+            symptomIndicator = `<span class="text-[8px] font-bold ${sevColor}">🚨</span>`;
+          }
+
+          cell.className = `h-14 p-1 rounded-xl flex flex-col justify-between cursor-pointer transition-all ${borderClass}`;
+          cell.dataset.date = dateStr;
+
+          cell.innerHTML = `
+            <div class="flex items-center justify-between px-0.5">
+              <span class="text-xs ${isSelected ? 'text-pink-900 font-extrabold' : 'text-slate-700'}">${w.day}</span>
+              ${symptomIndicator}
+            </div>
+            ${mealIndicator}
+            <div class="text-[9px] text-slate-500 truncate flex items-center justify-center gap-0.5">
+              ${dayMeals.length > 0 ? `<span class="text-[10px]">${getMealTimeSlot(dayMeals[0].time, dayMeals[0].type).icon}</span>` : '<span class="text-slate-300">·</span>'}
+            </div>
+          `;
+
+          cell.addEventListener('click', () => {
+            selectedDateStr = dateStr;
+            renderCalendar();
+            renderSelectedDateDetail();
+          });
+
+          gridElem.appendChild(cell);
         });
 
-        gridElem.appendChild(cell);
+        renderSelectedDateDetail();
       }
     }
 
-    // --- Render Selected Date Details ---
+    // --- Render Selected Date Details (Meals only, symptom box removed) ---
     function renderSelectedDateDetail() {
       const dateDisplay = document.getElementById('detail-date-display');
       const scoreBadge = document.getElementById('detail-score-badge');
       const summaryText = document.getElementById('detail-summary-text');
-      const symptomBanner = document.getElementById('detail-symptom-banner');
       const mealsList = document.getElementById('detail-meals-list');
-      if (!dateDisplay || !scoreBadge || !summaryText || !symptomBanner || !mealsList) return;
+      if (!dateDisplay || !scoreBadge || !summaryText || !mealsList) return;
 
       const dateObj = new Date(selectedDateStr + 'T00:00:00');
       const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
       dateDisplay.textContent = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 (${daysOfWeek[dateObj.getDay()]})`;
 
       const dayMeals = mealsData.filter(m => m.date === selectedDateStr).sort(compareMealTime);
-      const daySymptom = symptomsData[selectedDateStr];
 
       // Score Header
       if (dayMeals.length > 0) {
@@ -1524,45 +1817,11 @@
         const cfg = getScoreColorConfig(avg);
         scoreBadge.textContent = `★ ${avg} ${cfg.label}`;
         scoreBadge.className = `px-2 py-0.5 rounded-full text-xs font-bold ${cfg.badgeBg} ${cfg.text}`;
-        summaryText.textContent = `총 ${dayMeals.length}회 기록됨 (식단 점수 ${avg}점)`;
+        summaryText.textContent = `총 ${dayMeals.length}끼 식사 기록됨`;
       } else {
         scoreBadge.textContent = '기록 없음';
         scoreBadge.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
         summaryText.textContent = '이 날 기록된 식단이 없습니다.';
-      }
-
-      // Skin Symptom Banner
-      if (daySymptom && daySymptom.severity > 0) {
-        const tagsStr = daySymptom.tags.length > 0 ? daySymptom.tags.join(', ') : '증상 상세 없음';
-        symptomBanner.className = 'rounded-xl p-3 bg-rose-50 border border-rose-200 flex items-center justify-between text-xs';
-        symptomBanner.innerHTML = `
-          <div>
-            <div class="font-bold text-rose-800 flex items-center gap-1">
-              <span>🚨 피부 트러블 심각도: ${daySymptom.severity}/5점</span>
-            </div>
-            <div class="text-[11px] text-rose-600 mt-0.5">${tagsStr} ${daySymptom.notes ? `(${daySymptom.notes})` : ''}</div>
-          </div>
-          <button id="btn-edit-symptom-banner" class="px-2 py-1 rounded-lg bg-white border border-rose-200 text-rose-700 font-semibold hover:bg-rose-100 text-[11px]">
-            수정
-          </button>
-        `;
-        document.getElementById('btn-edit-symptom-banner')?.addEventListener('click', () => {
-          openSymptomModal(selectedDateStr);
-        });
-      } else {
-        symptomBanner.className = 'rounded-xl p-2.5 bg-slate-50 border border-slate-200 flex items-center justify-between text-xs text-slate-600';
-        symptomBanner.innerHTML = `
-          <div class="flex items-center gap-1.5 text-slate-500">
-            <span>✨</span>
-            <span>피부 상태 기록이 없거나 편안함</span>
-          </div>
-          <button id="btn-add-symptom-banner" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-100 text-[11px]">
-            + 피부 기록
-          </button>
-        `;
-        document.getElementById('btn-add-symptom-banner')?.addEventListener('click', () => {
-          openSymptomModal(selectedDateStr);
-        });
       }
 
       // Meals List with iOS-style Swipe-to-Delete
@@ -1769,6 +2028,7 @@
           mealsList.appendChild(swipeItem);
         });
       }
+      renderMinimalRecChips();
     }
 
     
@@ -1928,7 +2188,44 @@
       '대추야자 (데이츠) & 버터', '현미 가래떡 츄러스', '바삭한 연근 부각', '흑임자 떡 2알'
     ];
 
-    let currentRecCategory = 'cleanMaintenance';
+    // --- Minimal Recommendation Chips ---
+    function renderMinimalRecChips() {
+      const container = document.getElementById('minimal-rec-chips');
+      if (!container) return;
+
+      const cuisines = ['한식', '중식', '일식', '양식', '아시안'];
+      const shuffledCuisines = [...cuisines].sort(() => 0.5 - Math.random()).slice(0, 2);
+      const picked = [];
+      shuffledCuisines.forEach(c => {
+        const pool = MEAL_DATABASE_100[c] || [];
+        if (pool.length > 0) {
+          picked.push({ name: pool[Math.floor(Math.random() * pool.length)].name, type: 'meal' });
+        }
+      });
+
+      if (typeof SNACK_DATABASE_100 !== 'undefined' && SNACK_DATABASE_100.length > 0) {
+        picked.push({ name: SNACK_DATABASE_100[Math.floor(Math.random() * SNACK_DATABASE_100.length)], type: 'snack' });
+      }
+
+      container.innerHTML = '';
+      picked.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-pink-50 text-slate-700 hover:text-pink-700 border border-slate-200 hover:border-pink-200 text-xs font-medium flex items-center gap-1 active:scale-95 transition-all cursor-pointer';
+        btn.innerHTML = `<span>${item.type === 'snack' ? '☕' : '🥗'}</span><span>${item.name}</span>`;
+        btn.addEventListener('click', () => {
+          openMealModal();
+          const nameInput = document.getElementById('input-meal-name');
+          if (nameInput) nameInput.value = item.name;
+          setMealTypeUI(item.type);
+          updateLiveScore();
+          showToast(`'${item.name}' 메뉴가 입력되었습니다! ✨`, '✓');
+        });
+        container.appendChild(btn);
+      });
+    }
+
+        let currentRecCategory = 'cleanMaintenance';
 
     function renderWeeklyPlanAndRecommendations() {
       const periodElem = document.getElementById('weekly-eval-period');
@@ -2729,25 +3026,19 @@
       const viewAnalysis = document.getElementById('view-analysis');
       const tabCalBtn = document.getElementById('tab-calendar');
       const tabAnaBtn = document.getElementById('tab-analysis');
-      const navCalBtn = document.getElementById('nav-btn-calendar');
-      const navAnaBtn = document.getElementById('nav-btn-analysis');
 
       if (tab === 'calendar') {
         viewCalendar.classList.remove('hidden');
         viewAnalysis.classList.add('hidden');
         tabCalBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all bg-white text-slate-900 shadow-sm flex items-center justify-center gap-1.5 font-bold';
         tabAnaBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 font-medium';
-        navCalBtn.className = 'flex flex-col items-center text-pink-600 font-bold';
-        navAnaBtn.className = 'flex flex-col items-center hover:text-slate-800 text-slate-500 font-medium';
+        calendarViewMode = 'month';
         renderCalendar();
-        renderSelectedDateDetail();
       } else {
         viewCalendar.classList.add('hidden');
         viewAnalysis.classList.remove('hidden');
         tabCalBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 font-medium';
         tabAnaBtn.className = 'flex-1 py-2 rounded-lg text-center transition-all bg-white text-slate-900 shadow-sm flex items-center justify-center gap-1.5 font-bold';
-        navCalBtn.className = 'flex flex-col items-center text-slate-500 font-medium';
-        navAnaBtn.className = 'flex flex-col items-center text-rose-600 font-bold';
         renderCorrelationAnalysis();
       }
     }
@@ -2760,12 +3051,10 @@
       renderSelectedDateDetail();
       renderWeeklyPlanAndRecommendations();
 
-      // Weekly Plan & Recommendations Listeners
-      document.getElementById('btn-goto-weekly-plan')?.addEventListener('click', () => {
-        switchTab('analysis');
-        setTimeout(() => {
-          document.getElementById('weekly-plan-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+      // Minimal Recommendation Refresh Listener
+      document.getElementById('btn-refresh-minimal-rec')?.addEventListener('click', () => {
+        renderMinimalRecChips();
+        showToast('새로운 추천 메뉴를 불러왔습니다! 🥗', '🔄');
       });
 
       document.getElementById('btn-refresh-recommendations')?.addEventListener('click', () => {
@@ -2886,28 +3175,50 @@
       // Tab Events
       document.getElementById('tab-calendar')?.addEventListener('click', () => switchTab('calendar'));
       document.getElementById('tab-analysis')?.addEventListener('click', () => switchTab('analysis'));
-      document.getElementById('nav-btn-calendar')?.addEventListener('click', () => switchTab('calendar'));
-      document.getElementById('nav-btn-analysis')?.addEventListener('click', () => switchTab('analysis'));
 
-      // Month Navigation
+      // Month / Week Navigation
       document.getElementById('btn-prev-month')?.addEventListener('click', () => {
-        if (currentMonth === 0) {
-          currentMonth = 11;
-          currentYear--;
+        if (calendarViewMode === 'week') {
+          const cur = new Date(selectedDateStr + 'T00:00:00');
+          cur.setDate(cur.getDate() - 7);
+          const yyyy = cur.getFullYear();
+          const mm = String(cur.getMonth() + 1).padStart(2, '0');
+          const dd = String(cur.getDate()).padStart(2, '0');
+          selectedDateStr = `${yyyy}-${mm}-${dd}`;
+          currentYear = yyyy;
+          currentMonth = cur.getMonth();
+          renderCalendar();
         } else {
-          currentMonth--;
+          if (currentMonth === 0) {
+            currentMonth = 11;
+            currentYear--;
+          } else {
+            currentMonth--;
+          }
+          renderCalendar();
         }
-        renderCalendar();
       });
 
       document.getElementById('btn-next-month')?.addEventListener('click', () => {
-        if (currentMonth === 11) {
-          currentMonth = 0;
-          currentYear++;
+        if (calendarViewMode === 'week') {
+          const cur = new Date(selectedDateStr + 'T00:00:00');
+          cur.setDate(cur.getDate() + 7);
+          const yyyy = cur.getFullYear();
+          const mm = String(cur.getMonth() + 1).padStart(2, '0');
+          const dd = String(cur.getDate()).padStart(2, '0');
+          selectedDateStr = `${yyyy}-${mm}-${dd}`;
+          currentYear = yyyy;
+          currentMonth = cur.getMonth();
+          renderCalendar();
         } else {
-          currentMonth++;
+          if (currentMonth === 11) {
+            currentMonth = 0;
+            currentYear++;
+          } else {
+            currentMonth++;
+          }
+          renderCalendar();
         }
-        renderCalendar();
       });
 
       document.getElementById('btn-today-month')?.addEventListener('click', () => {
@@ -2916,8 +3227,56 @@
         currentMonth = nowD.getMonth();
         selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
         renderCalendar();
-        renderSelectedDateDetail();
+        if (calendarViewMode === 'week') renderSelectedDateDetail();
       });
+
+      // View Mode Toggle (Month vs Week)
+      document.getElementById('btn-calendar-view-mode')?.addEventListener('click', () => {
+        calendarViewMode = (calendarViewMode === 'month') ? 'week' : 'month';
+        renderCalendar();
+      });
+
+      // iOS-style Swipe Back: Left-to-right swipe switches back from Week to Month view
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isSwipeBackCandidate = false;
+
+      const calendarSection = document.getElementById('view-calendar');
+      calendarSection?.addEventListener('touchstart', (e) => {
+        if (calendarViewMode !== 'week') return;
+        if (e.touches && e.touches[0]) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          isSwipeBackCandidate = true;
+        }
+      }, { passive: true });
+
+      calendarSection?.addEventListener('touchmove', (e) => {
+        if (!isSwipeBackCandidate || calendarViewMode !== 'week') return;
+        if (e.touches && e.touches[0]) {
+          const diffX = e.touches[0].clientX - touchStartX;
+          const diffY = e.touches[0].clientY - touchStartY;
+          // If vertical scroll dominant, cancel swipe back
+          if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 12) {
+            isSwipeBackCandidate = false;
+          }
+        }
+      }, { passive: true });
+
+      calendarSection?.addEventListener('touchend', (e) => {
+        if (!isSwipeBackCandidate || calendarViewMode !== 'week') return;
+        isSwipeBackCandidate = false;
+        if (e.changedTouches && e.changedTouches[0]) {
+          const diffX = e.changedTouches[0].clientX - touchStartX;
+          const diffY = e.changedTouches[0].clientY - touchStartY;
+          // Swipe from left to right (diffX > 45px and predominantly horizontal)
+          if (diffX > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+            calendarViewMode = 'month';
+            renderCalendar();
+            showToast('월간 캘린더로 돌아왔습니다. 📅', '‹');
+          }
+        }
+      }, { passive: true });
 
       // Quick Meal Openers
       document.getElementById('btn-floating-add-meal')?.addEventListener('click', () => toggleMealModal());
@@ -2984,6 +3343,25 @@
       // Meal Type Buttons
       document.getElementById('btn-type-meal')?.addEventListener('click', () => setMealTypeUI('meal'));
       document.getElementById('btn-type-snack')?.addEventListener('click', () => setMealTypeUI('snack'));
+
+      // Settings Modal Listeners
+      document.getElementById('btn-open-settings')?.addEventListener('click', openSettingsModal);
+      document.getElementById('btn-close-settings')?.addEventListener('click', closeSettingsModal);
+      document.getElementById('modal-settings')?.addEventListener('click', (e) => {
+        if (e.target.id === 'modal-settings') closeSettingsModal();
+      });
+
+      // Backup & Restore Buttons
+      document.getElementById('btn-export-backup')?.addEventListener('click', exportBackupData);
+      document.getElementById('btn-import-restore')?.addEventListener('click', () => {
+        document.getElementById('input-restore-file')?.click();
+      });
+      document.getElementById('input-restore-file')?.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          importRestoreData(e.target.files[0]);
+          e.target.value = '';
+        }
+      });
 
 
 
